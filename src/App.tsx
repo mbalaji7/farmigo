@@ -28,6 +28,8 @@ import {
 import { initialEquipment, type Equipment } from "./data";
 import { PageLink, useRouter } from "./router";
 import { ComparePage, CompareTray } from "./components/Comparison";
+import Wanted, {sampleWanted} from "./pages/Wanted";
+import {type WantedPost} from "./wantedTypes";
 import RentalProgress from "./pages/RentalProgress";
 import SavedSearches from "./components/SavedSearches";
 import { type SearchFilters } from "./discovery";
@@ -88,6 +90,7 @@ function readStorage<T>(key: string, fallback: T): T {
 export default function App() {
   const { page, path, navigate, updateQuery } = useRouter();
   const initialFilters = readFilters(window.location.search);
+  const [wantedPosts,setWantedPosts,wantedError] = usePersistentState<WantedPost[]>("farmigo-wanted",sampleWanted());
   const [reviews, setReviews, reviewStorageError] = usePersistentState<
     OwnerReview[]
   >("farmigo-reviews", []);
@@ -621,6 +624,7 @@ export default function App() {
                 </span>
               </div>
             </section>
+            <div className="marketplace-utility-nav page-width"><PageLink page="/compare">Compare equipment</PageLink><PageLink page="/saved-searches">Saved searches</PageLink><PageLink page="/wanted">Equipment wanted</PageLink></div>
             <section
               className="equipment-section page-width"
               id="equipment"
@@ -772,6 +776,7 @@ export default function App() {
                 <div className="empty-state">
                   <Search size={32} />
                   <h3>No equipment in this field yet.</h3>
+                  <PageLink className="text-link" page="/wanted">Post the equipment you need</PageLink>
                   <p>
                     Try another category, a broader search, or an Iowa city like
                     Des Moines or Ames.
@@ -797,6 +802,7 @@ export default function App() {
             </section>
           </>
         )}
+        {page === "wanted" && <><Wanted posts={wantedPosts} equipment={equipment} profile={profile} onSave={post=>setWantedPosts(prev=>[post,...prev])} onOffer={(id,offer)=>setWantedPosts(prev=>prev.map(p=>p.id===id?{...p,offers:[...p.offers,offer]}:p))} onStatus={(id,status)=>setWantedPosts(prev=>prev.map(p=>p.id===id?{...p,status}:p))} onList={()=>setDialog("listing")}/>{wantedError&&<p role="alert" className="page-width inline-error">{wantedError}</p>}</>}
         {page === "rental" && (rental?<RentalProgress request={rental} equipment={equipment.find(e=>e.id===rental.equipmentId)} onUpdate={entry=>setRequests(prev=>prev.map(r=>r.id===entry.id?entry:r))}/>:<section className="empty-state page-width"><h1>Rental not found.</h1><p>Open your local demo account to view its requests.</p><PageLink className="button primary" page="/account">My account</PageLink></section>)}
         {page === "saved-searches" && <SavedSearches key={profile?.id || "guest"} scope={profile?.id || "guest"} filters={appliedFilters} equipment={equipment} requests={requests} onApply={applySearch}/>}
         {page === "compare" && <ComparePage equipment={equipmentWithReviews} />}
