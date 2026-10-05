@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { type Equipment, images } from "../data";
 import { PageLink, useRouter } from "../router";
+import { ownerPath } from "../ownerData";
 import { type DemoProfile } from "../accountTypes";
 import { type EquipmentRequest } from "../marketplaceTypes";
 import PhotoGallery from "../components/PhotoGallery";
@@ -100,8 +101,7 @@ export default function EquipmentPage({
             title={e.title}
           />
           <p className="photo-disclaimer">
-            Sample listing photos are illustrations. The field photo shows
-            example farm surroundings.
+            {e.photos?.length ? "Photos from this browser-local listing." : "Sample listing photos are illustrations. The field photo shows example farm surroundings."}
           </p>
           <div className="detail-content">
             <h2>Ready for a good day’s work.</h2>
@@ -150,13 +150,16 @@ export default function EquipmentPage({
             <div className="owner-profile">
               <span className="owner-avatar">{e.initials}</span>
               <div>
-                <strong>{e.owner}</strong>
-                <span>
-                  <BadgeCheck size={14} />
-                  Sample owner profile
-                </span>
+                <PageLink page={ownerPath(e)}>
+                  <strong>{e.owner}</strong>
+                </PageLink>
+                <span><BadgeCheck size={14}/>{e.ownerId ? "Unverified demo owner" : "Illustrative owner profile"}</span>
               </div>
             </div>
+            <PageLink className="text-link" page={ownerPath(e)}>
+              View owner profile
+              <ArrowLeft size={14} />
+            </PageLink>
             <button className="button outline" onClick={onMessage}>
               <MessageCircle size={16} />
               Message owner

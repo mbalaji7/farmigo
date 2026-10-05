@@ -46,6 +46,13 @@ import { blockedFor, isRangeAvailable } from "./booking";
 import { type EquipmentRequest } from "./marketplaceTypes";
 import ListingForm from "./components/ListingForm";
 import EquipmentCard from "./components/EquipmentCard";
+import OwnerProfile from "./pages/OwnerProfile";
+import {
+  type OwnerReview,
+  ownerKey,
+  sampleReviews,
+  reviewSummary,
+} from "./ownerData";
 import Messages from "./pages/Messages";
 import { type Conversation } from "./messageTypes";
 import Account from "./pages/Account";
@@ -74,6 +81,9 @@ function readStorage<T>(key: string, fallback: T): T {
 export default function App() {
   const { page, path, navigate, updateQuery } = useRouter();
   const initialFilters = readFilters(window.location.search);
+  const [reviews, setReviews, reviewStorageError] = usePersistentState<
+    OwnerReview[]
+  >("farmigo-reviews", []);
   const [conversations, setConversations, messageStorageError] =
     usePersistentState<Conversation[]>("farmigo-conversations", []);
   const [profiles, setProfiles] = usePersistentState<DemoProfile[]>(
@@ -216,7 +226,20 @@ export default function App() {
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   };
-  const detailEquipment = equipment.find(
+  const equipmentWithReviews = equipment.map((e) => {
+    const all = [
+      ...sampleReviews(ownerKey(e)),
+      ...reviews.filter((r) => r.ownerKey === ownerKey(e)),
+    ];
+    const summary = reviewSummary(all);
+    return { ...e, rating: summary.rating, reviews: summary.count };
+  });
+  const ownerId = path.split("?")[0].slice("/owners/".length);
+  const publicProfile = profiles.find((p) => p.id === ownerId);
+  const ownerListings = equipmentWithReviews.filter(
+    (e) => ownerKey(e) === ownerId,
+  );
+  const detailEquipment = equipmentWithReviews.find(
     (e) => `/equipment/${encodeURIComponent(e.id)}` === path.split("?")[0],
   );
   const openEquipment = (e: Equipment) => {
@@ -261,7 +284,7 @@ export default function App() {
     query: search.query,
     location: search.location,
   };
-  const filtered = equipment
+  const filtered = equipmentWithReviews
     .filter((e) => matchesEquipment(e, appliedFilters))
     .sort((a, b) =>
       sort === "price-low"
@@ -697,7 +720,11 @@ export default function App() {
                     <EquipmentCard
                       key={e.id}
                       equipment={e}
-                      distance={advanced.radius ? distanceFrom(e, search.location) ?? undefined : undefined}
+                      distance={
+                        advanced.radius
+                          ? (distanceFrom(e, search.location) ?? undefined)
+                          : undefined
+                      }
                       mode={mode}
                       saved={saved.includes(e.id)}
                       toggleSave={toggleSave}
@@ -734,6 +761,37 @@ export default function App() {
             </section>
           </>
         )}
+        {page === "owner" &&
+          (ownerListings.length || publicProfile ? (
+            <OwnerProfile
+              name={
+                publicProfile?.farm ||
+                publicProfile?.name ||
+                ownerListings[0]?.owner ||
+                "Equipment owner"
+              }
+              ownerId={ownerId}
+              equipment={ownerListings}
+              profile={publicProfile}
+              currentProfile={profile}
+              reviews={[
+                ...sampleReviews(ownerId),
+                ...reviews.filter((r) => r.ownerKey === ownerId),
+              ]}
+              onReview={(review) => setReviews((prev) => [review, ...prev])}
+              toggleSave={toggleSave}
+              saved={saved}
+              onMessage={startConversation}
+              isSample={sampleReviews(ownerId).length > 0}
+            />
+          ) : (
+            <section className="empty-state page-width">
+              <h1>Owner profile not found.</h1>
+              <PageLink page="marketplace" className="button primary">
+                Explore equipment
+              </PageLink>
+            </section>
+          ))}
         {page === "messages" && (
           <Messages
             conversations={conversations.filter(
@@ -793,7 +851,9 @@ export default function App() {
           <Account
             profile={profile}
             requests={requests}
-            savedEquipment={equipment.filter((e) => saved.includes(e.id))}
+            savedEquipment={equipmentWithReviews.filter((e) =>
+              saved.includes(e.id),
+            )}
             toggleSave={toggleSave}
             onAuth={authenticate}
             onSignOut={() => setSession(null)}
@@ -954,6 +1014,11 @@ export default function App() {
           </span>
         </div>
       </footer>
+      {reviewStorageError && (
+        <p className="storage-warning" role="alert">
+          {reviewStorageError}
+        </p>
+      )}
       {messageStorageError && (
         <p className="storage-warning" role="alert">
           {messageStorageError}
@@ -1137,7 +1202,7 @@ export default function App() {
                 Keep your favorites close for when the season calls.
               </p>
               <div className="saved-grid">
-                {equipment
+                {equipmentWithReviews
                   .filter((e) => saved.includes(e.id))
                   .map((e) => (
                     <EquipmentCard

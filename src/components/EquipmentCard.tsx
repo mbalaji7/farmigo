@@ -1,6 +1,8 @@
-import { ArrowUpRight, BadgeCheck, Heart, MapPin, Star } from "lucide-react";
+import { ArrowUpRight, BadgeCheck, Heart, MapPin, Star, UserRound } from "lucide-react";
 import { type Equipment } from "../data";
 import { currency } from "../utils";
+import { PageLink } from "../router";
+import { ownerPath } from "../ownerData";
 import { Photo } from "./PhotoGallery";
 export default function EquipmentCard({
   equipment: e,
@@ -93,10 +95,18 @@ export default function EquipmentCard({
             <ArrowUpRight size={18} />
           </button>
         </div>
-        <div className="card-owner">
-          <BadgeCheck size={14} />
+        <PageLink
+          className="card-owner"
+          page={ownerPath(e)}
+          title={
+            e.ownerId
+              ? "Local demo owner; verification is not implemented"
+              : "Sample owner profile; badge is illustrative"
+          }
+        >
+          {e.ownerId ? <UserRound size={14} /> : <BadgeCheck size={14} />}
           {e.owner}
-        </div>
+        </PageLink>
       </div>
     </article>
   );

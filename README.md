@@ -30,11 +30,11 @@ npm run preview
 - Accessible dialogs with focus trapping, Escape dismissal, and keyboard controls
 - Mobile navigation and reduced-motion support
 
-This is a frontend prototype. Rental requests and purchase inquiries show a local confirmation and are not sent to owners. Authentication, payments, real availability, messaging, and uploaded equipment photography require a backend. Listing photos are illustrative and hosted externally; production should use licensed owner-uploaded images. Google Fonts are loaded externally, with local system fallbacks.
+This is a frontend prototype. Rental requests and purchase inquiries show a local confirmation and are not sent to owners. Production authentication, payments, live availability, messaging delivery, verification, and shared photo storage require a backend. Demo accounts, requests, conversations, and reviews are local browser data; uploaded photos are stored in IndexedDB. Sample listing photos are illustrative and include externally hosted images; production should use licensed owner-uploaded images. Google Fonts are loaded externally, with local system fallbacks.
 
 When hosting the production build, configure the host to serve `index.html` for frontend routes such as `/community` and `/how-it-works`. Vite's development and preview servers handle these routes automatically.
 
-## Prioritized frontend roadmap
+## Eight priority features
 
 1. **Equipment pages — implemented:** shareable URLs, galleries with keyboard controls and image fallbacks, specifications, pickup information, save/share actions, and rent/buy modes.
 
@@ -49,3 +49,17 @@ When hosting the production build, configure the host to serve `index.html` for 
 6. **Messaging — implemented:** `/messages` provides searchable equipment-linked conversations, persistent message threads, local read/unread state, a composer, equipment links, and mobile conversation navigation. Start from Message owner on an equipment page; explicit sample/reply controls demonstrate the owner side. Nothing is sent externally.
 
 7. **Discovery and shareable search — implemented:** brand, horsepower range, model-year range, operating-hours, condition, price and distance filters combine with rent/buy, category, and sorting. Applied searches are encoded in URLs and restore on reload/back navigation. Radius searches use clearly labeled demo Iowa city-center estimates; no geolocation is collected. Use Copy search link to share your search. Numeric parsing, filter combinations, and distance behavior have automated tests.
+
+8. **Owner profiles and reviews — implemented:** `/owners/:ownerId` shows a farm biography, location, active equipment, message action, review summaries, sorted sample/local reviews, and one local demo review per signed-in neighbor. Verification and response-time labels explain their illustrative status. User farm profiles populate their public demo owner pages; real transaction verification requires a backend.
+
+## Verification
+
+`npm run build` runs TypeScript checks and produces the production bundle. `npm test` covers rental pricing, date boundaries, availability conflicts, URL filter round trips, and radius/filter combinations. Browser smoke checks cover equipment URLs, gallery controls, uploaded photos, drafts, dashboard actions, booking confirmation, account sessions, persistent conversations, shareable searches, owner profiles, review persistence, and mobile layouts.
+
+## Backend integration boundaries
+
+- Replace local demo sessions with secure authentication; never use this demo sign-in as an authorization mechanism.
+- Move listings, photos, requests, profiles, messages, and reviews to server-backed services. Browser storage is device-specific and users can modify it.
+- Validate rates, availability, transport charges, ownership, and review eligibility on the server before accepting bookings or collecting payment.
+- Replace demo city-center distance estimates with verified locations/geocoding and implement an actual verification process.
+- Configure the production host to serve `index.html` for all frontend routes.
