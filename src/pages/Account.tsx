@@ -186,8 +186,18 @@ export default function Account({
         </button>
       </div>
       <div className="account-shortcuts">
-        <PageLink className="button outline" page="/wanted">Equipment wanted</PageLink>
-        <PageLink className="button outline" page="/saved-searches">Saved searches</PageLink>
+        <PageLink className="button outline" page="/insights">
+          Owner insights
+        </PageLink>
+        <PageLink className="button outline" page="/messages">
+          Messages
+        </PageLink>
+        <PageLink className="button outline" page="/wanted">
+          Equipment wanted
+        </PageLink>
+        <PageLink className="button outline" page="/saved-searches">
+          Saved searches
+        </PageLink>
         <PageLink className="button outline" page="/dashboard">
           <Tractor size={17} />
           Owner dashboard
@@ -365,16 +375,24 @@ export default function Account({
                 </p>
               </div>
               <div>
-                {r.kind === "rent" && <PageLink className="button outline" page={`/rentals/${r.id}`}>View rental progress</PageLink>}
-                <span className={`status-chip ${r.status}`}>{r.status}</span>
-                {["pending", "accepted"].includes(r.status) && !["in-use","returned"].includes(r.stage || "") && (
-                  <button
+                {r.kind === "rent" && (
+                  <PageLink
                     className="button outline"
-                    onClick={() => onCancel(r.id)}
+                    page={`/rentals/${r.id}`}
                   >
-                    Cancel demo request
-                  </button>
+                    View rental progress
+                  </PageLink>
                 )}
+                <span className={`status-chip ${r.status}`}>{r.status}</span>
+                {["pending", "accepted"].includes(r.status) &&
+                  !["in-use", "returned"].includes(r.stage || "") && (
+                    <button
+                      className="button outline"
+                      onClick={() => onCancel(r.id)}
+                    >
+                      Cancel demo request
+                    </button>
+                  )}
               </div>
             </article>
           ))}

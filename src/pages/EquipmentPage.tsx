@@ -103,7 +103,9 @@ export default function EquipmentPage({
             title={e.title}
           />
           <p className="photo-disclaimer">
-            {e.photos?.length ? "Photos from this browser-local listing." : "Sample listing photos are illustrations. The field photo shows example farm surroundings."}
+            {e.photos?.length
+              ? "Photos from this browser-local listing."
+              : "Sample listing photos are illustrations. The field photo shows example farm surroundings."}
           </p>
           <div className="detail-content">
             <h2>Ready for a good day’s work.</h2>
@@ -135,7 +137,7 @@ export default function EquipmentPage({
                 <dd>{e.attachments || "Confirm with the owner"}</dd>
               </div>
             </dl>
-            <Compatibility equipment={e}/>
+            <Compatibility equipment={e} />
             <h2>Pickup & transport.</h2>
             <div className="transport-card">
               <Truck size={23} />
@@ -156,7 +158,12 @@ export default function EquipmentPage({
                 <PageLink page={ownerPath(e)}>
                   <strong>{e.owner}</strong>
                 </PageLink>
-                <span><BadgeCheck size={14}/>{e.ownerId ? "Unverified demo owner" : "Illustrative owner profile"}</span>
+                <span>
+                  <BadgeCheck size={14} />
+                  {e.ownerId
+                    ? "Unverified demo owner"
+                    : "Illustrative owner profile"}
+                </span>
               </div>
             </div>
             <PageLink className="text-link" page={ownerPath(e)}>
@@ -213,7 +220,17 @@ export default function EquipmentPage({
           />
         </aside>
       </div>
-      {(!e.status || e.status === "active") && <div className="mobile-booking-bar"><span><strong>{currency(mode === "rent" ? e.rent : e.price)}</strong>{mode === "rent" ? " / day" : " to buy"}</span><a className="button primary" href="#booking">{mode === "rent" ? "Choose dates" : "Purchase inquiry"}</a></div>}
+      {(!e.status || e.status === "active") && (
+        <div className="mobile-booking-bar">
+          <span>
+            <strong>{currency(mode === "rent" ? e.rent : e.price)}</strong>
+            {mode === "rent" ? " / day" : " to buy"}
+          </span>
+          <a className="button primary" href="#booking">
+            {mode === "rent" ? "Choose dates" : "Purchase inquiry"}
+          </a>
+        </div>
+      )}
     </div>
   );
 }

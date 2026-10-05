@@ -1,4 +1,11 @@
-import { ArrowUpRight, BadgeCheck, Heart, MapPin, Star, UserRound } from "lucide-react";
+import {
+  ArrowUpRight,
+  BadgeCheck,
+  Heart,
+  MapPin,
+  Star,
+  UserRound,
+} from "lucide-react";
 import { type Equipment } from "../data";
 import { currency } from "../utils";
 import { PageLink } from "../router";

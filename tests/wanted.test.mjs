@@ -1,2 +1,12 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {wantedStatus} from '../src/wantedTypes.ts';
-test('wanted posts remain open through their expiry date and fulfilled posts stay closed',()=>{const p={status:'open',expiresAt:'2026-11-03'};assert.equal(wantedStatus(p,'2026-11-03'),'open');assert.equal(wantedStatus(p,'2026-11-04'),'expired');assert.equal(wantedStatus({...p,status:'fulfilled'},'2026-11-01'),'fulfilled');});
+import test from "node:test";
+import assert from "node:assert/strict";
+import { wantedStatus } from "../src/wantedTypes.ts";
+test("wanted posts remain open through their expiry date and fulfilled posts stay closed", () => {
+  const p = { status: "open", expiresAt: "2026-11-03" };
+  assert.equal(wantedStatus(p, "2026-11-03"), "open");
+  assert.equal(wantedStatus(p, "2026-11-04"), "expired");
+  assert.equal(
+    wantedStatus({ ...p, status: "fulfilled" }, "2026-11-01"),
+    "fulfilled",
+  );
+});

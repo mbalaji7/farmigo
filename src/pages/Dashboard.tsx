@@ -78,6 +78,14 @@ export default function Dashboard({
           New listing
         </button>
       </div>
+      <div className="account-shortcuts">
+        <PageLink className="button outline" page="/insights">
+          Owner insights
+        </PageLink>
+        <PageLink className="button outline" page="/messages">
+          Inbox
+        </PageLink>
+      </div>
       <div className="dashboard-stats">
         <div>
           <Tractor size={21} />
@@ -276,7 +284,14 @@ export default function Dashboard({
                   {r.message && <blockquote>{r.message}</blockquote>}
                 </div>
                 <div>
-                  {r.kind === "rent" && <PageLink className="button outline" page={`/rentals/${r.id}`}>View rental progress</PageLink>}
+                  {r.kind === "rent" && (
+                    <PageLink
+                      className="button outline"
+                      page={`/rentals/${r.id}`}
+                    >
+                      View rental progress
+                    </PageLink>
+                  )}
                   <span className={`status-chip ${r.status}`}>{r.status}</span>
                   {r.status === "pending" && (
                     <div className="request-actions">

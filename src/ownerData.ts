@@ -11,7 +11,8 @@ export type OwnerReview = {
   sample?: boolean;
 };
 export const ownerKey = (e: Equipment) => e.ownerId || ownerSlug(e.owner);
-export const ownerPath = (e: Equipment): `/${string}` => `/owners/${ownerKey(e)}`;
+export const ownerPath = (e: Equipment): `/${string}` =>
+  `/owners/${ownerKey(e)}`;
 const sampleOwners = [
   "willow-creek-farm",
   "green-acres-co-op",

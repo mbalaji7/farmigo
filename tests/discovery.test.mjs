@@ -1,8 +1,79 @@
-import test from 'node:test';import assert from 'node:assert/strict';
-import {readFilters,filterQuery,matchesEquipment,distanceFrom} from '../src/discovery.ts';import {initialEquipment} from '../src/data.ts';
-test('all search constraints survive a URL round trip',()=>{const f=readFilters('mode=buy&q=John+Deere&location=50309&brand=John+Deere&minPower=120&maxPower=240&minYear=2021&maxHours=900&radius=50');assert.deepEqual(readFilters(filterQuery(f)),f);});
-test('malformed numeric filters and unknown categories are ignored',()=>{const f=readFilters('radius=NaN&maxPrice=-10&category=invalid&sort=unknown');assert.equal(f.radius,'');assert.equal(f.maxPrice,'');assert.equal(f.category,'All equipment');});
-test('radius searching includes nearby cities instead of requiring a city text match',()=>{const f=readFilters('location=Des+Moines&radius=50');assert.equal(matchesEquipment(initialEquipment[2],f),true);assert.equal(matchesEquipment(initialEquipment[7],f),false);assert.equal(distanceFrom(initialEquipment[0],'50309'),0);});
-test('brand, power, age, hours, and listing status are combined',()=>{const f=readFilters('brand=John+Deere&minPower=200&maxPower=240&minYear=2022&maxHours=500');assert.equal(matchesEquipment(initialEquipment[0],f),true);assert.equal(matchesEquipment(initialEquipment[3],f),false);assert.equal(matchesEquipment({...initialEquipment[0],status:'paused'},f),false);});
-import {availableForSearch} from '../src/discovery.ts';
-test('date search excludes reservations and blocked dates without affecting purchases',()=>{const e={...initialEquipment[0],blockedDates:['2026-10-22']};const f=readFilters('start=2026-10-20&end=2026-10-23');assert.equal(availableForSearch(e,f,[],'2026-10-04'),false);assert.equal(availableForSearch(e,{...f,mode:'buy'},[],'2026-10-04'),true);assert.equal(availableForSearch({...e,blockedDates:[]},f,[{equipmentId:e.id,kind:'rent',status:'accepted',start:'2026-10-21',end:'2026-10-21'}],'2026-10-04'),false);assert.equal(availableForSearch(e,{...f,start:'2026-10-23',end:'2026-10-24'},[],'2026-10-04'),true);assert.equal(availableForSearch(e,f,[],'2026-11-01'),false);assert.deepEqual(readFilters(filterQuery(f)),f);assert.equal(readFilters('start=2026-02-30&end=2026-03-02').start,'');});
+import test from "node:test";
+import assert from "node:assert/strict";
+import {
+  readFilters,
+  filterQuery,
+  matchesEquipment,
+  distanceFrom,
+} from "../src/discovery.ts";
+import { initialEquipment } from "../src/data.ts";
+test("all search constraints survive a URL round trip", () => {
+  const f = readFilters(
+    "mode=buy&q=John+Deere&location=50309&brand=John+Deere&minPower=120&maxPower=240&minYear=2021&maxHours=900&radius=50",
+  );
+  assert.deepEqual(readFilters(filterQuery(f)), f);
+});
+test("malformed numeric filters and unknown categories are ignored", () => {
+  const f = readFilters(
+    "radius=NaN&maxPrice=-10&category=invalid&sort=unknown",
+  );
+  assert.equal(f.radius, "");
+  assert.equal(f.maxPrice, "");
+  assert.equal(f.category, "All equipment");
+});
+test("radius searching includes nearby cities instead of requiring a city text match", () => {
+  const f = readFilters("location=Des+Moines&radius=50");
+  assert.equal(matchesEquipment(initialEquipment[2], f), true);
+  assert.equal(matchesEquipment(initialEquipment[7], f), false);
+  assert.equal(distanceFrom(initialEquipment[0], "50309"), 0);
+});
+test("brand, power, age, hours, and listing status are combined", () => {
+  const f = readFilters(
+    "brand=John+Deere&minPower=200&maxPower=240&minYear=2022&maxHours=500",
+  );
+  assert.equal(matchesEquipment(initialEquipment[0], f), true);
+  assert.equal(matchesEquipment(initialEquipment[3], f), false);
+  assert.equal(
+    matchesEquipment({ ...initialEquipment[0], status: "paused" }, f),
+    false,
+  );
+});
+import { availableForSearch } from "../src/discovery.ts";
+test("date search excludes reservations and blocked dates without affecting purchases", () => {
+  const e = { ...initialEquipment[0], blockedDates: ["2026-10-22"] };
+  const f = readFilters("start=2026-10-20&end=2026-10-23");
+  assert.equal(availableForSearch(e, f, [], "2026-10-04"), false);
+  assert.equal(
+    availableForSearch(e, { ...f, mode: "buy" }, [], "2026-10-04"),
+    true,
+  );
+  assert.equal(
+    availableForSearch(
+      { ...e, blockedDates: [] },
+      f,
+      [
+        {
+          equipmentId: e.id,
+          kind: "rent",
+          status: "accepted",
+          start: "2026-10-21",
+          end: "2026-10-21",
+        },
+      ],
+      "2026-10-04",
+    ),
+    false,
+  );
+  assert.equal(
+    availableForSearch(
+      e,
+      { ...f, start: "2026-10-23", end: "2026-10-24" },
+      [],
+      "2026-10-04",
+    ),
+    true,
+  );
+  assert.equal(availableForSearch(e, f, [], "2026-11-01"), false);
+  assert.deepEqual(readFilters(filterQuery(f)), f);
+  assert.equal(readFilters("start=2026-02-30&end=2026-03-02").start, "");
+});

@@ -2,7 +2,7 @@ export type EquipmentRequest = {
   stage?: "pickup" | "in-use" | "returned";
   stageUpdatedAt?: string;
   conditionNotes?: string;
-  conditionPhotos?: {src:string;phase:"pickup"|"return"}[];
+  conditionPhotos?: { src: string; phase: "pickup" | "return" }[];
   id: string;
   equipmentId: string;
   equipmentTitle: string;

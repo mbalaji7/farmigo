@@ -33,10 +33,17 @@ export default function BookingPanel({
   requests: EquipmentRequest[];
   onRequest: (request: EquipmentRequest) => void;
 }) {
-  const {path} = useRouter();
+  const { path } = useRouter();
   const params = new URLSearchParams(path.split("?")[1]);
-  const initialStart = params.get("start") || "", initialEnd = params.get("end") || "";
-  const validInitial = initialStart >= localDate() && isRangeAvailable(initialStart,initialEnd,blockedFor(e.id,e.blockedDates || [], requests));
+  const initialStart = params.get("start") || "",
+    initialEnd = params.get("end") || "";
+  const validInitial =
+    initialStart >= localDate() &&
+    isRangeAvailable(
+      initialStart,
+      initialEnd,
+      blockedFor(e.id, e.blockedDates || [], requests),
+    );
   const [start, setStart] = useState(validInitial ? initialStart : ""),
     [end, setEnd] = useState(validInitial ? initialEnd : ""),
     [name, setName] = useState(profile?.name || ""),
@@ -168,7 +175,14 @@ export default function BookingPanel({
           Your local demo request is pending. The owner dashboard can accept or
           decline it. No payment or message has been sent.
         </p>
-        {submitted.kind === "rent" && <PageLink className="button outline full" page={`/rentals/${submitted.id}`}>View rental progress</PageLink>}
+        {submitted.kind === "rent" && (
+          <PageLink
+            className="button outline full"
+            page={`/rentals/${submitted.id}`}
+          >
+            View rental progress
+          </PageLink>
+        )}
         <button className="button primary full" onClick={close}>
           Keep exploring
           <ArrowRight size={17} />

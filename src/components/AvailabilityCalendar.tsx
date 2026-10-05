@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { localDate } from "../utils";
 export default function AvailabilityCalendar({
@@ -17,6 +17,14 @@ export default function AvailabilityCalendar({
     date.setDate(1);
     return date;
   });
+  useEffect(() => {
+    if (!start) return;
+    const date = new Date(`${start}T00:00:00`);
+    if (Number.isFinite(date.getTime())) {
+      date.setDate(1);
+      setMonth(date);
+    }
+  }, [start]);
   const first = month.getDay(),
     length = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
   const today = localDate();
@@ -49,8 +57,22 @@ export default function AvailabilityCalendar({
         </button>
       </div>
       <div className="calendar-grid">
-        {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
-          <span key={i} className="weekday">
+        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, i) => (
+          <span
+            key={i}
+            className="weekday"
+            aria-label={
+              [
+                "Sunday",
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+              ][i]
+            }
+          >
             {day}
           </span>
         ))}

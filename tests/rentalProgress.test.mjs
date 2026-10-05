@@ -1,2 +1,20 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {rentalStage,nextRentalStage} from '../src/rentalProgress.ts';
-test('only accepted rentals advance through ordered handover stages',()=>{const r={kind:'rent',status:'pending'};assert.equal(rentalStage(r),'requested');assert.equal(nextRentalStage(r),undefined);r.status='accepted';assert.equal(nextRentalStage(r),'pickup');r.stage='pickup';assert.equal(nextRentalStage(r),'in-use');r.stage='in-use';assert.equal(nextRentalStage(r),'returned');r.stage='returned';assert.equal(nextRentalStage(r),undefined);r.status='cancelled';assert.equal(rentalStage(r),'cancelled');assert.equal(nextRentalStage(r),undefined);assert.equal(nextRentalStage({kind:'buy',status:'accepted'}),undefined);});
+import test from "node:test";
+import assert from "node:assert/strict";
+import { rentalStage, nextRentalStage } from "../src/rentalProgress.ts";
+test("only accepted rentals advance through ordered handover stages", () => {
+  const r = { kind: "rent", status: "pending" };
+  assert.equal(rentalStage(r), "requested");
+  assert.equal(nextRentalStage(r), undefined);
+  r.status = "accepted";
+  assert.equal(nextRentalStage(r), "pickup");
+  r.stage = "pickup";
+  assert.equal(nextRentalStage(r), "in-use");
+  r.stage = "in-use";
+  assert.equal(nextRentalStage(r), "returned");
+  r.stage = "returned";
+  assert.equal(nextRentalStage(r), undefined);
+  r.status = "cancelled";
+  assert.equal(rentalStage(r), "cancelled");
+  assert.equal(nextRentalStage(r), undefined);
+  assert.equal(nextRentalStage({ kind: "buy", status: "accepted" }), undefined);
+});

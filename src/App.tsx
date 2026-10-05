@@ -28,8 +28,10 @@ import {
 import { initialEquipment, type Equipment } from "./data";
 import { PageLink, useRouter } from "./router";
 import { ComparePage, CompareTray } from "./components/Comparison";
-import Wanted, {sampleWanted} from "./pages/Wanted";
-import {type WantedPost} from "./wantedTypes";
+import Insights from "./pages/Insights";
+import { type ActivityEvent } from "./insights";
+import Wanted, { sampleWanted } from "./pages/Wanted";
+import { type WantedPost } from "./wantedTypes";
 import RentalProgress from "./pages/RentalProgress";
 import SavedSearches from "./components/SavedSearches";
 import { type SearchFilters } from "./discovery";
@@ -90,7 +92,13 @@ function readStorage<T>(key: string, fallback: T): T {
 export default function App() {
   const { page, path, navigate, updateQuery } = useRouter();
   const initialFilters = readFilters(window.location.search);
-  const [wantedPosts,setWantedPosts,wantedError] = usePersistentState<WantedPost[]>("farmigo-wanted",sampleWanted());
+  const [activity, setActivity, activityError] = usePersistentState<
+    ActivityEvent[]
+  >("farmigo-activity", []);
+  const viewed = useRef("");
+  const [wantedPosts, setWantedPosts, wantedError] = usePersistentState<
+    WantedPost[]
+  >("farmigo-wanted", sampleWanted());
   const [reviews, setReviews, reviewStorageError] = usePersistentState<
     OwnerReview[]
   >("farmigo-reviews", []);
@@ -138,8 +146,12 @@ export default function App() {
     query: initialFilters.query,
     location: initialFilters.location,
   });
-  const [dates, setDates] = useState({start: initialFilters.start || "", end: initialFilters.end || ""});
+  const [dates, setDates] = useState({
+    start: initialFilters.start || "",
+    end: initialFilters.end || "",
+  });
   const [draftDates, setDraftDates] = useState(dates);
+  const [dateOptions, setDateOptions] = useState(!!initialFilters.start);
   const [dateError, setDateError] = useState("");
   const [sort, setSort] = useState(initialFilters.sort);
   const [condition, setCondition] = useState(initialFilters.condition);
@@ -223,8 +235,8 @@ export default function App() {
     const restore = () => {
       if (window.location.pathname !== "/") return;
       const f = readFilters(window.location.search);
-      setDates({start:f.start || "",end:f.end || ""});
-      setDraftDates({start:f.start || "",end:f.end || ""});
+      setDates({ start: f.start || "", end: f.end || "" });
+      setDraftDates({ start: f.start || "", end: f.end || "" });
       setMode(f.mode);
       setCategory(f.category);
       setCondition(f.condition);
@@ -240,6 +252,17 @@ export default function App() {
     return () => window.removeEventListener("popstate", restore);
   }, []);
   const toggleSave = (id: string) => {
+    if (!saved.includes(id))
+      setActivity((prev) =>
+        [
+          ...prev,
+          {
+            equipmentId: id,
+            kind: "save" as const,
+            createdAt: new Date().toISOString(),
+          },
+        ].slice(-2000),
+      );
     setSaved((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
@@ -257,14 +280,49 @@ export default function App() {
   const ownerListings = equipmentWithReviews.filter(
     (e) => ownerKey(e) === ownerId,
   );
-  const rental = requests.find(r=>`/rentals/${r.id}`===path.split("?")[0] && r.kind === "rent" && (r.sample || r.requesterId === profile?.id || equipment.some(e=>e.id===r.equipmentId && !initialEquipment.some(seed=>seed.id===e.id) && (!e.ownerId || e.ownerId === profile?.id))));
+  const rental = requests.find(
+    (r) =>
+      `/rentals/${r.id}` === path.split("?")[0] &&
+      r.kind === "rent" &&
+      (r.sample ||
+        r.requesterId === profile?.id ||
+        equipment.some(
+          (e) =>
+            e.id === r.equipmentId &&
+            !initialEquipment.some((seed) => seed.id === e.id) &&
+            (!e.ownerId || e.ownerId === profile?.id),
+        )),
+  );
   const detailEquipment = equipmentWithReviews.find(
     (e) => `/equipment/${encodeURIComponent(e.id)}` === path.split("?")[0],
   );
+  useEffect(() => {
+    const id = page === "equipment" ? detailEquipment?.id || "" : "";
+    if (id && id !== viewed.current)
+      setActivity((prev) =>
+        [
+          ...prev,
+          {
+            equipmentId: id,
+            kind: "view" as const,
+            createdAt: new Date().toISOString(),
+          },
+        ].slice(-2000),
+      );
+    viewed.current = id;
+  }, [page, detailEquipment?.id]);
+  const ownedEquipment = equipment.filter(
+    (e) =>
+      !initialEquipment.some((seed) => seed.id === e.id) &&
+      (!e.ownerId || e.ownerId === profile?.id),
+  );
   const openEquipment = (e: Equipment) => {
     setDialog(null);
-    const params = new URLSearchParams({mode});
-    if(mode === "rent" && dates.start && dates.end) { params.set("start",dates.start);params.set("end",dates.end); }
+    const params = new URLSearchParams({ mode });
+    if (mode === "rent" && dates.start && dates.end) {
+      params.set("start", dates.start);
+      params.set("end", dates.end);
+    }
     navigate(`/equipment/${encodeURIComponent(e.id)}?${params}`);
   };
   const browse = () => {
@@ -280,7 +338,9 @@ export default function App() {
     setMobileMenu(false);
   };
   const clearFilters = () => {
-    setDates({start:"",end:""});setDraftDates({start:"",end:""});setDateError("");
+    setDates({ start: "", end: "" });
+    setDraftDates({ start: "", end: "" });
+    setDateError("");
     setCategory("All equipment");
     setQuery("");
     setLocation("");
@@ -308,7 +368,11 @@ export default function App() {
     location: search.location,
   };
   const filtered = equipmentWithReviews
-    .filter((e) => matchesEquipment(e, appliedFilters) && availableForSearch(e,appliedFilters,requests,localDate()))
+    .filter(
+      (e) =>
+        matchesEquipment(e, appliedFilters) &&
+        availableForSearch(e, appliedFilters, requests, localDate()),
+    )
     .sort((a, b) =>
       sort === "price-low"
         ? mode === "rent"
@@ -322,10 +386,20 @@ export default function App() {
     );
   const visible = showAll ? filtered : filtered.slice(0, 4);
   function applySearch(f: SearchFilters) {
-    setMode(f.mode);setCategory(f.category);setCondition(f.condition);setMaxPrice(f.maxPrice);setSort(f.sort);
-    setQuery(f.query);setLocation(f.location);setSearch({query:f.query,location:f.location});
-    setAdvanced({...emptyAdvanced,...f});setDates({start:f.start || "",end:f.end || ""});setDraftDates({start:f.start || "",end:f.end || ""});
-    setDateError("");setShowAll(true);navigate(`/?${filterQuery(f)}`);
+    setMode(f.mode);
+    setCategory(f.category);
+    setCondition(f.condition);
+    setMaxPrice(f.maxPrice);
+    setSort(f.sort);
+    setQuery(f.query);
+    setLocation(f.location);
+    setSearch({ query: f.query, location: f.location });
+    setAdvanced({ ...emptyAdvanced, ...f });
+    setDates({ start: f.start || "", end: f.end || "" });
+    setDraftDates({ start: f.start || "", end: f.end || "" });
+    setDateError("");
+    setShowAll(true);
+    navigate(`/?${filterQuery(f)}`);
   }
   function saveListing(entry: Equipment) {
     entry.ownerId = entry.ownerId || profile?.id;
@@ -401,6 +475,9 @@ export default function App() {
   }
   return (
     <>
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
       <div className="announcement">
         <span>A little more access. A lot more possibility.</span>
         <span className="announcement-right">
@@ -484,10 +561,12 @@ export default function App() {
             <span className="nav-divider" />
             <button
               className="button primary list-button"
+              aria-label="List equipment"
               onClick={() => setDialog("listing")}
             >
               <Plus size={17} />
-              List equipment
+              <span className="list-label-desktop">List equipment</span>
+              <span className="list-label-mobile">List</span>
             </button>
             <PageLink
               className="account-button"
@@ -497,11 +576,14 @@ export default function App() {
               <MessageCircle size={18} />
             </PageLink>
             <button
-              className="account-button"
+              className="account-button account-control"
               aria-label="Open your Farmigo account"
               onClick={() => navigate("/account")}
             >
               <UserRound size={18} />
+              <span className="account-name">
+                {profile?.name.split(" ")[0] || "Sign in"}
+              </span>
             </button>
             <button
               className="mobile-menu-button icon-button"
@@ -516,6 +598,7 @@ export default function App() {
       </header>
       <main
         key={path.split("?")[0]}
+        id="main-content"
         className={`page-content ${page}-page`}
         tabIndex={-1}
       >
@@ -564,8 +647,25 @@ export default function App() {
                 className="search-bar"
                 onSubmit={(ev) => {
                   ev.preventDefault();
-                  if(mode === "rent" && (draftDates.start || draftDates.end) && (!draftDates.start || !draftDates.end || draftDates.start < localDate() || !isRangeAvailable(draftDates.start,draftDates.end,new Set()))) { setDateError("Choose both dates, today or later, for a rental of 1–90 days."); return; }
-                  setDateError("");setDates(draftDates);
+                  if (
+                    mode === "rent" &&
+                    (draftDates.start || draftDates.end) &&
+                    (!draftDates.start ||
+                      !draftDates.end ||
+                      draftDates.start < localDate() ||
+                      !isRangeAvailable(
+                        draftDates.start,
+                        draftDates.end,
+                        new Set(),
+                      ))
+                  ) {
+                    setDateError(
+                      "Choose both dates, today or later, for a rental of 1–90 days.",
+                    );
+                    return;
+                  }
+                  setDateError("");
+                  setDates(draftDates);
                   setSearch({ query: query.trim(), location: location.trim() });
                   setShowAll(true);
                   browse();
@@ -597,14 +697,62 @@ export default function App() {
                     />
                   </span>
                 </label>
-                {mode === "rent" && <div className="search-dates"><label>Rental start<input aria-label="Rental start" type="date" min={localDate()} value={draftDates.start} onInput={ev=>{const value=ev.currentTarget.value;setDraftDates(prev=>({...prev,start:value}));}}/></label><label>Rental end<input aria-label="Rental end" type="date" min={draftDates.start || localDate()} value={draftDates.end} onInput={ev=>{const value=ev.currentTarget.value;setDraftDates(prev=>({...prev,end:value}));}}/></label></div>}
+                {mode === "rent" && (
+                  <details
+                    className="rental-date-options"
+                    open={dateOptions}
+                    onToggle={(ev) => setDateOptions(ev.currentTarget.open)}
+                  >
+                    <summary>Rental dates (optional)</summary>
+                    <div className="search-dates">
+                      <label>
+                        Rental start
+                        <input
+                          aria-label="Rental start"
+                          type="date"
+                          min={localDate()}
+                          value={draftDates.start}
+                          onInput={(ev) => {
+                            const value = ev.currentTarget.value;
+                            setDraftDates((prev) => ({
+                              ...prev,
+                              start: value,
+                            }));
+                          }}
+                        />
+                      </label>
+                      <label>
+                        Rental end
+                        <input
+                          aria-label="Rental end"
+                          type="date"
+                          min={draftDates.start || localDate()}
+                          value={draftDates.end}
+                          onInput={(ev) => {
+                            const value = ev.currentTarget.value;
+                            setDraftDates((prev) => ({ ...prev, end: value }));
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </details>
+                )}
                 <button className="button primary search-button" type="submit">
                   <Search size={17} />
                   Search equipment
                 </button>
               </form>
-              {dateError && <p role="alert" className="inline-error">{dateError}</p>}
-              {mode === "rent" && dates.start && <p className="date-summary" role="status">Available {dates.start} through {dates.end} · Browser-local availability</p>}
+              {dateError && (
+                <p role="alert" className="inline-error">
+                  {dateError}
+                </p>
+              )}
+              {mode === "rent" && dates.start && (
+                <p className="date-summary" role="status">
+                  Rental dates: {dates.start} through {dates.end} ·
+                  Browser-local availability
+                </p>
+              )}
               <div className="search-foot">
                 <span>
                   <BadgeCheck size={16} />
@@ -624,7 +772,11 @@ export default function App() {
                 </span>
               </div>
             </section>
-            <div className="marketplace-utility-nav page-width"><PageLink page="/compare">Compare equipment</PageLink><PageLink page="/saved-searches">Saved searches</PageLink><PageLink page="/wanted">Equipment wanted</PageLink></div>
+            <div className="marketplace-utility-nav page-width">
+              <PageLink page="/compare">Compare equipment</PageLink>
+              <PageLink page="/saved-searches">Saved searches</PageLink>
+              <PageLink page="/wanted">Equipment wanted</PageLink>
+            </div>
             <section
               className="equipment-section page-width"
               id="equipment"
@@ -675,9 +827,64 @@ export default function App() {
                 <Share2 size={14} />
                 Copy search link
               </button>
-              <SavedSearches key={profile?.id || "guest"} scope={profile?.id || "guest"} filters={appliedFilters} equipment={equipment} requests={requests} onApply={applySearch} compact/>
-              <div className="active-filter-chips" aria-label="Applied search filters">
-                {Object.entries(appliedFilters).filter(([k,v])=>v && !["sort","mode","end"].includes(k) && !(k === "category" && v === "All equipment") && !(k === "condition" && v === "Any condition")).map(([key,value])=><button key={key} onClick={()=>applySearch({...appliedFilters,[key]:key === "category"?"All equipment":key === "condition"?"Any condition":"",...(key === "start"?{end:""}:{})})} aria-label={`Remove ${key} filter`}><span>{({minPower:"Min HP",maxPower:"Max HP",minYear:"From year",maxYear:"Through year",maxHours:"Max hours",maxPrice:"Max price",radius:"Miles",start:"From",location:"Near",query:"Search"} as Record<string,string>)[key] || key}: {value}</span><X size={15}/></button>)}
+              <SavedSearches
+                key={profile?.id || "guest"}
+                scope={profile?.id || "guest"}
+                filters={appliedFilters}
+                equipment={equipment}
+                requests={requests}
+                onApply={applySearch}
+                compact
+              />
+              <div
+                className="active-filter-chips"
+                aria-label="Applied search filters"
+              >
+                {Object.entries(appliedFilters)
+                  .filter(
+                    ([k, v]) =>
+                      v &&
+                      !["sort", "mode", "end"].includes(k) &&
+                      !(k === "category" && v === "All equipment") &&
+                      !(k === "condition" && v === "Any condition"),
+                  )
+                  .map(([key, value]) => (
+                    <button
+                      key={key}
+                      onClick={() =>
+                        applySearch({
+                          ...appliedFilters,
+                          [key]:
+                            key === "category"
+                              ? "All equipment"
+                              : key === "condition"
+                                ? "Any condition"
+                                : "",
+                          ...(key === "start" ? { end: "" } : {}),
+                        })
+                      }
+                      aria-label={`Remove ${key} filter`}
+                    >
+                      <span>
+                        {(
+                          {
+                            minPower: "Min HP",
+                            maxPower: "Max HP",
+                            minYear: "From year",
+                            maxYear: "Through year",
+                            maxHours: "Max hours",
+                            maxPrice: "Max price",
+                            radius: "Miles",
+                            start: "From",
+                            location: "Near",
+                            query: "Search",
+                          } as Record<string, string>
+                        )[key] || key}
+                        : {value}
+                      </span>
+                      <X size={15} />
+                    </button>
+                  ))}
               </div>
               <div className="browse-toolbar">
                 <div
@@ -717,7 +924,24 @@ export default function App() {
                   Filters{activeFilters > 0 && <b>{activeFilters}</b>}
                 </button>
               </div>
-              <div className="view-switch" role="group" aria-label="Equipment view"><button aria-pressed={view === "list"} onClick={()=>setView("list")}>List view</button><button aria-pressed={view === "map"} onClick={()=>setView("map")}>Map view</button></div>
+              <div
+                className="view-switch"
+                role="group"
+                aria-label="Equipment view"
+              >
+                <button
+                  aria-pressed={view === "list"}
+                  onClick={() => setView("list")}
+                >
+                  List view
+                </button>
+                <button
+                  aria-pressed={view === "map"}
+                  onClick={() => setView("map")}
+                >
+                  Map view
+                </button>
+              </div>
               <div className="results-toolbar">
                 <span>
                   {search.query ||
@@ -725,7 +949,7 @@ export default function App() {
                   category !== "All equipment" ||
                   activeFilters
                     ? `${filtered.length} matching ${filtered.length === 1 ? "listing" : "listings"}${search.location ? ` near ${search.location}` : ""}`
-                    : "A few favorites from the farm"}
+                    : `Showing ${view === "map" ? filtered.length : visible.length} of ${filtered.length} listings`}
                   {(search.query ||
                     search.location ||
                     category !== "All equipment" ||
@@ -751,7 +975,15 @@ export default function App() {
                   <ChevronDown size={13} />
                 </label>
               </div>
-              {view === "map" && filtered.length ? <EquipmentMap equipment={filtered} mode={mode} saved={saved} toggleSave={toggleSave} open={openEquipment}/> : visible.length ? (
+              {view === "map" && filtered.length ? (
+                <EquipmentMap
+                  equipment={filtered}
+                  mode={mode}
+                  saved={saved}
+                  toggleSave={toggleSave}
+                  open={openEquipment}
+                />
+              ) : visible.length ? (
                 <div
                   className="equipment-grid"
                   key={`${mode}-${category}-${search.query}-${search.location}-${condition}-${maxPrice}-${sort}`}
@@ -776,7 +1008,9 @@ export default function App() {
                 <div className="empty-state">
                   <Search size={32} />
                   <h3>No equipment in this field yet.</h3>
-                  <PageLink className="text-link" page="/wanted">Post the equipment you need</PageLink>
+                  <PageLink className="text-link" page="/wanted">
+                    Post the equipment you need
+                  </PageLink>
                   <p>
                     Try another category, a broader search, or an Iowa city like
                     Des Moines or Ames.
@@ -802,9 +1036,89 @@ export default function App() {
             </section>
           </>
         )}
-        {page === "wanted" && <><Wanted posts={wantedPosts} equipment={equipment} profile={profile} onSave={post=>setWantedPosts(prev=>[post,...prev])} onOffer={(id,offer)=>setWantedPosts(prev=>prev.map(p=>p.id===id?{...p,offers:[...p.offers,offer]}:p))} onStatus={(id,status)=>setWantedPosts(prev=>prev.map(p=>p.id===id?{...p,status}:p))} onList={()=>setDialog("listing")}/>{wantedError&&<p role="alert" className="page-width inline-error">{wantedError}</p>}</>}
-        {page === "rental" && (rental?<RentalProgress request={rental} equipment={equipment.find(e=>e.id===rental.equipmentId)} onUpdate={entry=>setRequests(prev=>prev.map(r=>r.id===entry.id?entry:r))}/>:<section className="empty-state page-width"><h1>Rental not found.</h1><p>Open your local demo account to view its requests.</p><PageLink className="button primary" page="/account">My account</PageLink></section>)}
-        {page === "saved-searches" && <SavedSearches key={profile?.id || "guest"} scope={profile?.id || "guest"} filters={appliedFilters} equipment={equipment} requests={requests} onApply={applySearch}/>}
+        {page === "insights" && (
+          <>
+            <Insights
+              equipment={ownedEquipment}
+              requests={requests}
+              events={activity}
+              saved={saved}
+            />
+            {activityError && (
+              <p className="page-width inline-error" role="alert">
+                {activityError}
+              </p>
+            )}
+          </>
+        )}
+        {page === "wanted" && (
+          <>
+            <Wanted
+              posts={wantedPosts}
+              equipment={equipment}
+              profile={profile}
+              onSave={(post) => setWantedPosts((prev) => [post, ...prev])}
+              onOffer={(id, offer) =>
+                setWantedPosts((prev) =>
+                  prev.map((p) =>
+                    p.id === id ? { ...p, offers: [...p.offers, offer] } : p,
+                  ),
+                )
+              }
+              onStatus={(id, status) =>
+                setWantedPosts((prev) =>
+                  prev.map((p) => {
+                    if (p.id !== id) return p;
+                    const expires = new Date();
+                    expires.setDate(expires.getDate() + 30);
+                    return {
+                      ...p,
+                      status,
+                      expiresAt:
+                        status === "open" ? localDate(expires) : p.expiresAt,
+                    };
+                  }),
+                )
+              }
+              onList={() => setDialog("listing")}
+            />
+            {wantedError && (
+              <p role="alert" className="page-width inline-error">
+                {wantedError}
+              </p>
+            )}
+          </>
+        )}
+        {page === "rental" &&
+          (rental ? (
+            <RentalProgress
+              request={rental}
+              equipment={equipment.find((e) => e.id === rental.equipmentId)}
+              onUpdate={(entry) =>
+                setRequests((prev) =>
+                  prev.map((r) => (r.id === entry.id ? entry : r)),
+                )
+              }
+            />
+          ) : (
+            <section className="empty-state page-width">
+              <h1>Rental not found.</h1>
+              <p>Open your local demo account to view its requests.</p>
+              <PageLink className="button primary" page="/account">
+                My account
+              </PageLink>
+            </section>
+          ))}
+        {page === "saved-searches" && (
+          <SavedSearches
+            key={profile?.id || "guest"}
+            scope={profile?.id || "guest"}
+            filters={appliedFilters}
+            equipment={equipment}
+            requests={requests}
+            onApply={applySearch}
+          />
+        )}
         {page === "compare" && <ComparePage equipment={equipmentWithReviews} />}
         {page === "owner" &&
           (ownerListings.length || publicProfile ? (
@@ -1283,7 +1597,9 @@ export default function App() {
           )}
         </Modal>
       )}
-      <CompareTray equipment={equipmentWithReviews} />
+      {!["equipment", "rental"].includes(page) && (
+        <CompareTray equipment={equipmentWithReviews} />
+      )}
       {dialog === "listing" && (
         <Modal
           title={

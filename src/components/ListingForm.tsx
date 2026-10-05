@@ -220,7 +220,12 @@ export default function ListingForm({
       | "workingWidth"
       | "capacity"
       | "brand"
-      | "pto" | "hitch" | "hydraulics" | "transportDimensions" | "transportWeight" | "minimumTractorHp",
+      | "pto"
+      | "hitch"
+      | "hydraulics"
+      | "transportDimensions"
+      | "transportWeight"
+      | "minimumTractorHp",
     label: string,
     options: {
       required?: boolean;
@@ -480,13 +485,31 @@ export default function ListingForm({
             </label>
           </>
         )}
-        <div className="span-two form-section-heading"><h3>Connections & transport</h3><p>Optional details. Leave unknown requirements blank so neighbors know to ask.</p></div>
-        {text("minimumTractorHp", "Minimum tractor horsepower (optional)", {type:"number"})}
-        {text("pto", "PTO connection", {maxLength:80,placeholder:"e.g. 540 rpm, 6 spline"})}
-        {text("hitch", "Hitch connection", {maxLength:80,placeholder:"e.g. Category II"})}
-        {text("hydraulics", "Hydraulic requirements", {maxLength:200})}
-        {text("transportDimensions", "Transport dimensions (include units)", {maxLength:120})}
-        {text("transportWeight", "Transport weight (include units)", {maxLength:80})}
+        <div className="span-two form-section-heading">
+          <h3>Connections & transport</h3>
+          <p>
+            Optional details. Leave unknown requirements blank so neighbors know
+            to ask.
+          </p>
+        </div>
+        {text("minimumTractorHp", "Minimum tractor horsepower (optional)", {
+          type: "number",
+        })}
+        {text("pto", "PTO connection", {
+          maxLength: 80,
+          placeholder: "e.g. 540 rpm, 6 spline",
+        })}
+        {text("hitch", "Hitch connection", {
+          maxLength: 80,
+          placeholder: "e.g. Category II",
+        })}
+        {text("hydraulics", "Hydraulic requirements", { maxLength: 200 })}
+        {text("transportDimensions", "Transport dimensions (include units)", {
+          maxLength: 120,
+        })}
+        {text("transportWeight", "Transport weight (include units)", {
+          maxLength: 80,
+        })}
         {text("attachments", "Included attachments", {
           maxLength: 200,
           placeholder: "List what is included",

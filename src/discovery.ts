@@ -68,8 +68,10 @@ export function readFilters(search: string): SearchFilters {
       ? value
       : "";
   };
-  const start = p.get("start") || "", end = p.get("end") || "";
-  const validDates = daysBetween(start, end) > 0 && daysBetween(start, end) <= 90;
+  const start = p.get("start") || "",
+    end = p.get("end") || "";
+  const validDates =
+    daysBetween(start, end) > 0 && daysBetween(start, end) <= 90;
   return {
     start: validDates ? start : "",
     end: validDates ? end : "",
@@ -98,7 +100,10 @@ export function readFilters(search: string): SearchFilters {
 }
 export function filterQuery(f: SearchFilters): string {
   const p = new URLSearchParams();
-  if (f.mode === "rent" && f.start && f.end) { p.set("start", f.start); p.set("end", f.end); }
+  if (f.mode === "rent" && f.start && f.end) {
+    p.set("start", f.start);
+    p.set("end", f.end);
+  }
   if (f.mode === "buy") p.set("mode", "buy");
   if (f.category !== "All equipment") p.set("category", f.category);
   if (f.condition !== "Any condition") p.set("condition", f.condition);
@@ -172,7 +177,21 @@ export function matchesEquipment(e: Equipment, f: SearchFilters) {
   );
 }
 
-export function availableForSearch(e: Equipment, f: SearchFilters, requests: EquipmentRequest[], today: string) {
+export function availableForSearch(
+  e: Equipment,
+  f: SearchFilters,
+  requests: EquipmentRequest[],
+  today: string,
+) {
   if (f.mode === "buy" || (!f.start && !f.end)) return true;
-  return !!f.start && !!f.end && f.start >= today && isRangeAvailable(f.start, f.end, blockedFor(e.id, e.blockedDates || [], requests));
+  return (
+    !!f.start &&
+    !!f.end &&
+    f.start >= today &&
+    isRangeAvailable(
+      f.start,
+      f.end,
+      blockedFor(e.id, e.blockedDates || [], requests),
+    )
+  );
 }

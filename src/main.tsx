@@ -9,7 +9,9 @@ import { RouterProvider } from "./router";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <RouterProvider>
-      <ComparisonProvider><App /></ComparisonProvider>
+      <ComparisonProvider>
+        <App />
+      </ComparisonProvider>
     </RouterProvider>
   </React.StrictMode>,
 );

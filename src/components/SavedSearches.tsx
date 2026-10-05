@@ -1,16 +1,184 @@
-import { useState, type FormEvent } from 'react';
-import { Bookmark, Bell, Search } from 'lucide-react';
-import { type SearchFilters, matchesEquipment, availableForSearch, readFilters, filterQuery } from '../discovery';
-import type { Equipment } from '../data';
-import type { EquipmentRequest } from '../marketplaceTypes';
-import { usePersistentState } from '../usePersistentState';
-import { localDate } from '../utils';
-type SavedSearch={id:string;name:string;query:string;alerts:boolean;seen:string[]};
-export default function SavedSearches({scope,filters,equipment,requests,onApply,compact=false}:{scope:string;filters:SearchFilters;equipment:Equipment[];requests:EquipmentRequest[];onApply:(f:SearchFilters)=>void;compact?:boolean}){
- const [entries,setEntries,error]=usePersistentState<SavedSearch[]>(`farmigo-searches-${scope}`,[]);
- const [name,setName]=useState(''),[notice,setNotice]=useState('');
- const matches=(f:SearchFilters)=>equipment.filter(e=>matchesEquipment(e,f)&&availableForSearch(e,f,requests,localDate()));
- function save(ev:FormEvent){ev.preventDefault();if(!name.trim())return;setEntries(prev=>[{id:crypto.randomUUID(),name:name.trim(),query:filterQuery(filters),alerts:false,seen:matches(filters).map(e=>e.id)},...prev]);setName('');setNotice('Search saved on this browser.');}
- const content=<><p className="readable-note">Save your filters and rental dates for another visit. Local match previews update when this browser gains matching listings. Email and push alerts are not connected.</p><form className="saved-search-form" onSubmit={save}><label>Search name<input required maxLength={80} value={name} onChange={ev=>setName(ev.target.value)} placeholder="e.g. Tractors for spring planting"/></label><button className="button primary" type="submit"><Bookmark size={17}/>Save current search</button></form>{(notice||error)&&<p role="status">{error||notice}</p>}<div className="saved-search-list">{entries.map(s=>{const f=readFilters(s.query),all=matches(f),fresh=all.filter(e=>!s.seen.includes(e.id));return <article key={s.id} className="saved-search-card"><div><h3>{s.name}</h3><p>{f.mode==='rent'?'Rent':'Buy'} · {f.category}{f.query?` · ${f.query}`:''}{f.location?` · ${f.location}`:''}{f.start?` · ${f.start} → ${f.end}`:''}</p><span>{all.length} matching listings{s.alerts?` · ${fresh.length} new since last check`:''}</span></div><div className="action-row"><button className="button outline" onClick={()=>onApply(f)}><Search size={16}/>Run search</button><button className="button outline" aria-pressed={s.alerts} onClick={()=>setEntries(prev=>prev.map(x=>x.id===s.id?{...x,alerts:!x.alerts}:x))}><Bell size={16}/>{s.alerts?'Local previews on':'Enable local previews'}</button>{s.alerts&&fresh.length>0&&<button className="text-link" onClick={()=>setEntries(prev=>prev.map(x=>x.id===s.id?{...x,seen:all.map(e=>e.id)}:x))}>Mark matches seen</button>}<button className="text-link" onClick={()=>{setEntries(prev=>prev.filter(x=>x.id!==s.id));setNotice('Search removed. You can save these filters again.');}}>Remove search</button></div></article>;})}{!entries.length&&<p className="readable-note">Your saved searches will appear here.</p>}</div></>;
- return compact?<details className="saved-search-panel"><summary><Bookmark size={17}/>Save and revisit searches ({entries.length})</summary>{content}</details>:<section className="workspace-page page-width"><div className="workspace-heading"><div><span className="eyebrow">KEEP A GOOD SEARCH CLOSE</span><h1>Your saved searches.</h1><p>Pick up where your last search left off.</p></div></div>{content}</section>;
+import { useState, type FormEvent } from "react";
+import { Bookmark, Bell, Search } from "lucide-react";
+import {
+  type SearchFilters,
+  matchesEquipment,
+  availableForSearch,
+  readFilters,
+  filterQuery,
+} from "../discovery";
+import type { Equipment } from "../data";
+import type { EquipmentRequest } from "../marketplaceTypes";
+import { usePersistentState } from "../usePersistentState";
+import { localDate } from "../utils";
+type SavedSearch = {
+  id: string;
+  name: string;
+  query: string;
+  alerts: boolean;
+  seen: string[];
+};
+export default function SavedSearches({
+  scope,
+  filters,
+  equipment,
+  requests,
+  onApply,
+  compact = false,
+}: {
+  scope: string;
+  filters: SearchFilters;
+  equipment: Equipment[];
+  requests: EquipmentRequest[];
+  onApply: (f: SearchFilters) => void;
+  compact?: boolean;
+}) {
+  const [entries, setEntries, error] = usePersistentState<SavedSearch[]>(
+    `farmigo-searches-${scope}`,
+    [],
+  );
+  const [name, setName] = useState(""),
+    [notice, setNotice] = useState("");
+  const matches = (f: SearchFilters) =>
+    equipment.filter(
+      (e) =>
+        matchesEquipment(e, f) &&
+        availableForSearch(e, f, requests, localDate()),
+    );
+  function save(ev: FormEvent) {
+    ev.preventDefault();
+    if (!name.trim()) return;
+    setEntries((prev) => [
+      {
+        id: crypto.randomUUID(),
+        name: name.trim(),
+        query: filterQuery(filters),
+        alerts: false,
+        seen: matches(filters).map((e) => e.id),
+      },
+      ...prev,
+    ]);
+    setName("");
+    setNotice("Search saved on this browser.");
+  }
+  const content = (
+    <>
+      <p className="readable-note">
+        Save your filters and rental dates for another visit. Local match
+        previews update when this browser gains matching listings. Email and
+        push alerts are not connected.
+      </p>
+      <form className="saved-search-form" onSubmit={save}>
+        <label>
+          Search name
+          <input
+            required
+            maxLength={80}
+            value={name}
+            onChange={(ev) => setName(ev.target.value)}
+            placeholder="e.g. Tractors for spring planting"
+          />
+        </label>
+        <button className="button primary" type="submit">
+          <Bookmark size={17} />
+          Save current search
+        </button>
+      </form>
+      {(notice || error) && <p role="status">{error || notice}</p>}
+      <div className="saved-search-list">
+        {entries.map((s) => {
+          const f = readFilters(s.query),
+            all = matches(f),
+            fresh = all.filter((e) => !s.seen.includes(e.id));
+          return (
+            <article key={s.id} className="saved-search-card">
+              <div>
+                <h3>{s.name}</h3>
+                <p>
+                  {f.mode === "rent" ? "Rent" : "Buy"} · {f.category}
+                  {f.query ? ` · ${f.query}` : ""}
+                  {f.location ? ` · ${f.location}` : ""}
+                  {f.start ? ` · ${f.start} → ${f.end}` : ""}
+                </p>
+                <span>
+                  {all.length} matching listings
+                  {s.alerts ? ` · ${fresh.length} new since last check` : ""}
+                </span>
+              </div>
+              <div className="action-row">
+                <button className="button outline" onClick={() => onApply(f)}>
+                  <Search size={16} />
+                  Run search
+                </button>
+                <button
+                  className="button outline"
+                  aria-pressed={s.alerts}
+                  onClick={() =>
+                    setEntries((prev) =>
+                      prev.map((x) =>
+                        x.id === s.id ? { ...x, alerts: !x.alerts } : x,
+                      ),
+                    )
+                  }
+                >
+                  <Bell size={16} />
+                  {s.alerts ? "Local previews on" : "Enable local previews"}
+                </button>
+                {s.alerts && fresh.length > 0 && (
+                  <button
+                    className="text-link"
+                    onClick={() =>
+                      setEntries((prev) =>
+                        prev.map((x) =>
+                          x.id === s.id
+                            ? { ...x, seen: all.map((e) => e.id) }
+                            : x,
+                        ),
+                      )
+                    }
+                  >
+                    Mark matches seen
+                  </button>
+                )}
+                <button
+                  className="text-link"
+                  onClick={() => {
+                    setEntries((prev) => prev.filter((x) => x.id !== s.id));
+                    setNotice(
+                      "Search removed. You can save these filters again.",
+                    );
+                  }}
+                >
+                  Remove search
+                </button>
+              </div>
+            </article>
+          );
+        })}
+        {!entries.length && (
+          <p className="readable-note">Your saved searches will appear here.</p>
+        )}
+      </div>
+    </>
+  );
+  return compact ? (
+    <details className="saved-search-panel">
+      <summary>
+        <Bookmark size={17} />
+        Save and revisit searches ({entries.length})
+      </summary>
+      {content}
+    </details>
+  ) : (
+    <section className="workspace-page page-width">
+      <div className="workspace-heading">
+        <div>
+          <span className="eyebrow">KEEP A GOOD SEARCH CLOSE</span>
+          <h1>Your saved searches.</h1>
+          <p>Pick up where your last search left off.</p>
+        </div>
+      </div>
+      {content}
+    </section>
+  );
 }
