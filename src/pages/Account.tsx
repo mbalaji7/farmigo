@@ -186,6 +186,7 @@ export default function Account({
         </button>
       </div>
       <div className="account-shortcuts">
+        <PageLink className="button outline" page="/saved-searches">Saved searches</PageLink>
         <PageLink className="button outline" page="/dashboard">
           <Tractor size={17} />
           Owner dashboard

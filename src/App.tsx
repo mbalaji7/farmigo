@@ -28,6 +28,8 @@ import {
 import { initialEquipment, type Equipment } from "./data";
 import { PageLink, useRouter } from "./router";
 import { ComparePage, CompareTray } from "./components/Comparison";
+import SavedSearches from "./components/SavedSearches";
+import { type SearchFilters } from "./discovery";
 import EquipmentMap from "./components/EquipmentMap";
 import HowItWorks from "./pages/HowItWorks";
 import Community from "./pages/Community";
@@ -314,6 +316,12 @@ export default function App() {
           : 0,
     );
   const visible = showAll ? filtered : filtered.slice(0, 4);
+  function applySearch(f: SearchFilters) {
+    setMode(f.mode);setCategory(f.category);setCondition(f.condition);setMaxPrice(f.maxPrice);setSort(f.sort);
+    setQuery(f.query);setLocation(f.location);setSearch({query:f.query,location:f.location});
+    setAdvanced({...emptyAdvanced,...f});setDates({start:f.start || "",end:f.end || ""});setDraftDates({start:f.start || "",end:f.end || ""});
+    setDateError("");setShowAll(true);navigate(`/?${filterQuery(f)}`);
+  }
   function saveListing(entry: Equipment) {
     entry.ownerId = entry.ownerId || profile?.id;
     setEquipment((prev) =>
@@ -661,6 +669,10 @@ export default function App() {
                 <Share2 size={14} />
                 Copy search link
               </button>
+              <SavedSearches key={profile?.id || "guest"} scope={profile?.id || "guest"} filters={appliedFilters} equipment={equipment} requests={requests} onApply={applySearch} compact/>
+              <div className="active-filter-chips" aria-label="Applied search filters">
+                {Object.entries(appliedFilters).filter(([k,v])=>v && !["sort","mode","end"].includes(k) && !(k === "category" && v === "All equipment") && !(k === "condition" && v === "Any condition")).map(([key,value])=><button key={key} onClick={()=>applySearch({...appliedFilters,[key]:key === "category"?"All equipment":key === "condition"?"Any condition":"",...(key === "start"?{end:""}:{})})} aria-label={`Remove ${key} filter`}><span>{({minPower:"Min HP",maxPower:"Max HP",minYear:"From year",maxYear:"Through year",maxHours:"Max hours",maxPrice:"Max price",radius:"Miles",start:"From",location:"Near",query:"Search"} as Record<string,string>)[key] || key}: {value}</span><X size={15}/></button>)}
+              </div>
               <div className="browse-toolbar">
                 <div
                   className="category-tabs"
@@ -783,6 +795,7 @@ export default function App() {
             </section>
           </>
         )}
+        {page === "saved-searches" && <SavedSearches key={profile?.id || "guest"} scope={profile?.id || "guest"} filters={appliedFilters} equipment={equipment} requests={requests} onApply={applySearch}/>}
         {page === "compare" && <ComparePage equipment={equipmentWithReviews} />}
         {page === "owner" &&
           (ownerListings.length || publicProfile ? (
