@@ -17,6 +17,7 @@ import {
   Search,
   Share2,
   SlidersHorizontal,
+  Sparkles,
   Sprout,
   Tractor,
   Truck,
@@ -174,6 +175,19 @@ export default function App() {
   const [showAll, setShowAll] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [toast, setToast] = useState("");
+  const [glassFrost, setGlassFrost] = usePersistentState<number>(
+    "farmigo-glass-frost",
+    68,
+  );
+  const [glassControlOpen, setGlassControlOpen] = useState(false);
+
+  useEffect(() => {
+    const frost = Math.min(100, Math.max(0, Number(glassFrost) || 0));
+    const root = document.documentElement;
+    root.style.setProperty("--glass-alpha", `${0.2 + frost * 0.006}`);
+    root.style.setProperty("--glass-blur", `${4 + frost * 0.24}px`);
+    root.style.setProperty("--glass-border", `${0.28 + frost * 0.005}`);
+  }, [glassFrost]);
   const equipmentSection = useRef<HTMLElement>(null);
   useEffect(() => {
     setDialog(null);
@@ -597,6 +611,53 @@ export default function App() {
           </div>
         </div>
       </header>
+      <div className="glass-control">
+        {glassControlOpen && (
+          <section
+            className="glass-panel"
+            id="liquid-glass-settings"
+            aria-label="Liquid glass appearance"
+          >
+            <div>
+              <Sparkles size={17} aria-hidden="true" />
+              <div>
+                <strong>Liquid glass</strong>
+                <p>Choose how clear or frosted the surfaces feel.</p>
+              </div>
+            </div>
+            <label>
+              <span>Clear</span>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={glassFrost}
+                aria-label="Liquid glass frost level"
+                aria-valuetext={`${glassFrost}% frosted`}
+                onChange={(event) => setGlassFrost(Number(event.target.value))}
+              />
+              <span>Frosted</span>
+            </label>
+            <button
+              className="glass-reset"
+              type="button"
+              onClick={() => setGlassFrost(68)}
+            >
+              Reset appearance
+            </button>
+          </section>
+        )}
+        <button
+          className="glass-trigger"
+          type="button"
+          aria-expanded={glassControlOpen}
+          aria-controls="liquid-glass-settings"
+          onClick={() => setGlassControlOpen(!glassControlOpen)}
+        >
+          <Sparkles size={18} aria-hidden="true" />
+          <span>Glass</span>
+        </button>
+      </div>
       <main
         key={path.split("?")[0]}
         id="main-content"

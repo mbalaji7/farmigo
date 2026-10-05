@@ -84,3 +84,7 @@ Shared styling increases secondary text contrast, uses 16px form inputs, readabl
 The search form uses explicit grid columns: one aligned row on desktop, two rows on tablets, and stacked fields with a full-width action on phones. Optional rental dates expand into their own section, with keyboard order following the fields before the search action. Shared responsive gutters align the header and page content. Marketplace tools use consistent gaps, compact saved-search padding, and a grouped view/count/sort toolbar; empty filter chips consume no space.
 
 Browser viewport checks cover 320–1440px, including both sides of the 700px and 1100px search breakpoints. Main pages are checked at 390px, 768px, and 1280px for page-level horizontal overflow. Expanded date controls, saved searches, and the mobile filter dialog are also checked. These checks use emulated viewport sizes rather than physical devices.
+
+### Liquid glass appearance
+
+Farmigo uses translucent, blurred surfaces across the header, marketplace tools, cards, dialogs, and footer. The fixed **Glass** button opens a Clear-to-Frosted slider; its setting is persisted in browser storage. Smooth scrolling is enabled for in-page navigation and reduced-motion preferences switch it off.
