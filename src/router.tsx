@@ -6,9 +6,10 @@ import {
   type AnchorHTMLAttributes,
   type ReactNode,
 } from "react";
-
-export type Page = "marketplace" | "how-it-works" | "community" | "not-found";
-type Destination = Exclude<Page, "not-found">;
+export type Page =
+  "marketplace" | "how-it-works" | "community" | "equipment" | "not-found";
+type Destination = "marketplace" | "how-it-works" | "community";
+export type RouteTarget = Destination | `/${string}`;
 const paths: Record<Destination, string> = {
   marketplace: "/",
   "how-it-works": "/how-it-works",
@@ -18,59 +19,65 @@ const titles: Record<Page, string> = {
   marketplace: "Farmigo — Find your next workhorse.",
   "how-it-works": "How it works — Farmigo",
   community: "Our community — Farmigo",
+  equipment: "Equipment — Farmigo",
   "not-found": "Page not found — Farmigo",
 };
-function currentPage(): Page {
-  const path = window.location.pathname.replace(/\/+$/, "") || "/";
+function currentPath() {
+  return location.pathname + location.search;
+}
+function getPage(path: string): Page {
+  const pathname = path.split("?")[0].replace(/\/+$/, "") || "/";
+  if (/^\/equipment\/[^/]+$/.test(pathname)) return "equipment";
   return (
-    (Object.entries(paths).find(([, value]) => value === path)?.[0] as
+    (Object.entries(paths).find(([, value]) => value === pathname)?.[0] as
       Destination | undefined) ?? "not-found"
   );
 }
+function href(target: RouteTarget) {
+  return target.startsWith("/") ? target : paths[target as Destination];
+}
 const RouterContext = createContext<{
   page: Page;
-  navigate: (page: Destination) => void;
+  path: string;
+  navigate: (target: RouteTarget) => void;
 } | null>(null);
 export function RouterProvider({ children }: { children: ReactNode }) {
-  const [page, setPage] = useState<Page>(currentPage);
+  const [path, setPath] = useState(currentPath);
+  const page = getPage(path);
   useEffect(() => {
-    // Keep links from the original single-page preview useful.
     if (
-      window.location.pathname === "/" &&
-      ["#community", "#how-it-works"].includes(window.location.hash)
+      location.pathname === "/" &&
+      ["#community", "#how-it-works"].includes(location.hash)
     ) {
-      window.history.replaceState(
-        null,
-        "",
-        `/${window.location.hash.slice(1)}`,
-      );
-      setPage(currentPage());
+      history.replaceState(null, "", `/${location.hash.slice(1)}`);
+      setPath(currentPath());
     }
-    const onBack = () => setPage(currentPage());
-    window.addEventListener("popstate", onBack);
-    return () => window.removeEventListener("popstate", onBack);
+    const back = () => setPath(currentPath());
+    window.addEventListener("popstate", back);
+    return () => window.removeEventListener("popstate", back);
   }, []);
   useEffect(() => {
     document.title = titles[page];
     window.scrollTo({ top: 0, behavior: "instant" });
     document.querySelector<HTMLElement>("main")?.focus({ preventScroll: true });
-  }, [page]);
-  function navigate(destination: Destination) {
-    if (window.location.pathname !== paths[destination] || window.location.hash)
-      window.history.pushState(null, "", paths[destination]);
-    setPage(destination);
+  }, [path, page]);
+  function navigate(target: RouteTarget) {
+    const next = href(target);
+    if (currentPath() !== next || location.hash)
+      history.pushState(null, "", next);
+    setPath(currentPath());
     window.scrollTo({ top: 0, behavior: "instant" });
   }
   return (
-    <RouterContext.Provider value={{ page, navigate }}>
+    <RouterContext.Provider value={{ page, path, navigate }}>
       {children}
     </RouterContext.Provider>
   );
 }
 export function useRouter() {
-  const router = useContext(RouterContext);
-  if (!router) throw new Error("useRouter must be used inside RouterProvider");
-  return router;
+  const value = useContext(RouterContext);
+  if (!value) throw new Error("RouterProvider is missing");
+  return value;
 }
 export function PageLink({
   page,
@@ -78,14 +85,14 @@ export function PageLink({
   children,
   ...props
 }: Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> & {
-  page: Destination;
+  page: RouteTarget;
   onNavigate?: () => void;
 }) {
   const router = useRouter();
   return (
     <a
       {...props}
-      href={paths[page]}
+      href={href(page)}
       onClick={(event) => {
         props.onClick?.(event);
         if (

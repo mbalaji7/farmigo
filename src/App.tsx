@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type FormEvent,
-  type ReactNode,
-} from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ArrowDownUp,
   ArrowRight,
@@ -13,7 +7,6 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
-  CircleHelp,
   Handshake,
   Heart,
   Leaf,
@@ -43,6 +36,9 @@ import {
 import { PageLink, useRouter } from "./router";
 import HowItWorks from "./pages/HowItWorks";
 import Community from "./pages/Community";
+import Modal from "./components/Modal";
+import EquipmentPage from "./pages/EquipmentPage";
+import { currency } from "./utils";
 
 type Mode = "rent" | "buy";
 type Dialog = "listing" | "saved" | "account" | "filters" | null;
@@ -55,12 +51,6 @@ const categories = [
   { name: "Attachments", icon: Wrench },
   { name: "Irrigation", icon: Waves },
 ];
-const currency = (n: number) =>
-  new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(n);
 function readStorage<T>(key: string, fallback: T): T {
   try {
     const value = localStorage.getItem(key);
@@ -68,88 +58,6 @@ function readStorage<T>(key: string, fallback: T): T {
   } catch {
     return fallback;
   }
-}
-function localDate() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function Modal({
-  title,
-  children,
-  close,
-  wide = false,
-}: {
-  title: string;
-  children: ReactNode;
-  close: () => void;
-  wide?: boolean;
-}) {
-  const dialog = useRef<HTMLDivElement>(null);
-  const closer = useRef(close);
-  closer.current = close;
-  useEffect(() => {
-    const prior = document.activeElement as HTMLElement | null;
-    const oldOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const root = dialog.current;
-    root
-      ?.querySelector<HTMLElement>("button, input, select, textarea")
-      ?.focus();
-    const key = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closer.current();
-      if (e.key === "Tab" && root) {
-        const items = Array.from(
-          root.querySelectorAll<HTMLElement>(
-            "button, input, select, textarea, a[href]",
-          ),
-        ).filter((el) => !el.hasAttribute("disabled"));
-        const first = items[0],
-          last = items[items.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last?.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first?.focus();
-        }
-      }
-    };
-    document.addEventListener("keydown", key);
-    return () => {
-      document.body.style.overflow = oldOverflow;
-      document.removeEventListener("keydown", key);
-      prior?.focus();
-    };
-  }, []);
-  return (
-    <div
-      className="modal-backdrop"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) close();
-      }}
-    >
-      <div
-        className={`modal ${wide ? "modal-wide" : ""}`}
-        ref={dialog}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-title"
-      >
-        <header className="modal-header">
-          <h2 id="modal-title">{title}</h2>
-          <button
-            className="icon-button"
-            aria-label="Close dialog"
-            onClick={close}
-          >
-            <X size={21} />
-          </button>
-        </header>
-        {children}
-      </div>
-    </div>
-  );
 }
 
 function EquipmentCard({
@@ -244,216 +152,8 @@ function EquipmentCard({
   );
 }
 
-function Detail({
-  equipment: e,
-  mode,
-  close,
-  saved,
-  toggleSave,
-}: {
-  equipment: Equipment;
-  mode: Mode;
-  close: () => void;
-  saved: boolean;
-  toggleSave: (id: string) => void;
-}) {
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
-  const [sent, setSent] = useState(false);
-  const days =
-    start && end
-      ? Math.max(
-          1,
-          Math.round(
-            (new Date(`${end}T12:00:00`).getTime() -
-              new Date(`${start}T12:00:00`).getTime()) /
-              86400000,
-          ) + 1,
-        )
-      : 0;
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    setSent(true);
-  };
-  return (
-    <Modal title={e.title} close={close} wide>
-      <div className="detail-grid">
-        <div>
-          <img className="detail-photo" src={e.image} alt={e.title} />
-          <div className="detail-location">
-            <MapPin size={15} />
-            {e.city}, {e.state}
-            <span>
-              <Star size={14} fill="currentColor" />
-              {e.rating} ({e.reviews} reviews)
-            </span>
-          </div>
-          <h3>Ready for a good day’s work.</h3>
-          <p className="detail-description">{e.description}</p>
-          <div className="detail-specs">
-            <div>
-              <span>Year</span>
-              <strong>{e.year}</strong>
-            </div>
-            <div>
-              <span>Hours</span>
-              <strong>{e.hours.toLocaleString()}</strong>
-            </div>
-            <div>
-              <span>Condition</span>
-              <strong>{e.condition}</strong>
-            </div>
-            {e.horsepower > 0 && (
-              <div>
-                <span>Power</span>
-                <strong>{e.horsepower} HP</strong>
-              </div>
-            )}
-          </div>
-          <div className="owner-profile">
-            <span className="owner-avatar">{e.initials}</span>
-            <div>
-              <strong>{e.owner}</strong>
-              <span>
-                <BadgeCheck size={14} /> Sample verified owner
-              </span>
-            </div>
-            <button
-              className={`icon-button ${saved ? "is-saved" : ""}`}
-              aria-label={saved ? "Unsave equipment" : "Save equipment"}
-              aria-pressed={saved}
-              onClick={() => toggleSave(e.id)}
-            >
-              <Heart size={20} fill={saved ? "currentColor" : "none"} />
-            </button>
-          </div>
-        </div>
-        <div className="booking-panel">
-          {sent ? (
-            <div className="success-panel">
-              <CheckCircle2 size={43} />
-              <h3>
-                {mode === "rent"
-                  ? "Your request is ready!"
-                  : "Your inquiry is ready!"}
-              </h3>
-              <p>
-                This is a frontend preview. Your request has not been sent to
-                the owner and no payment has been taken.
-              </p>
-              <button className="button primary full" onClick={close}>
-                Back to exploring
-                <ArrowRight size={17} />
-              </button>
-            </div>
-          ) : (
-            <>
-              <span className="eyebrow">
-                {mode === "rent"
-                  ? "MAKE IT YOURS FOR THE DAY"
-                  : "YOUR NEXT FARM INVESTMENT"}
-              </span>
-              <div className="detail-price">
-                {currency(mode === "rent" ? e.rent : e.price)}
-                {mode === "rent" && <span> / day</span>}
-              </div>
-              <p className="available">
-                <span />
-                Available to {mode === "rent" ? "rent" : "buy"}
-              </p>
-              <form onSubmit={submit}>
-                {mode === "rent" && (
-                  <div className="date-inputs">
-                    <label>
-                      Start date
-                      <input
-                        type="date"
-                        required
-                        min={localDate()}
-                        value={start}
-                        onInput={(ev) => {
-                          setStart(ev.currentTarget.value);
-                          if (end < ev.currentTarget.value) setEnd("");
-                        }}
-                      />
-                    </label>
-                    <label>
-                      End date
-                      <input
-                        type="date"
-                        required
-                        min={start || localDate()}
-                        value={end}
-                        onInput={(ev) => setEnd(ev.currentTarget.value)}
-                      />
-                    </label>
-                  </div>
-                )}
-                <label>
-                  Your name
-                  <input
-                    required
-                    name="name"
-                    autoComplete="name"
-                    placeholder="First and last name"
-                    maxLength={80}
-                  />
-                </label>
-                <label>
-                  Email address
-                  <input
-                    required
-                    type="email"
-                    autoComplete="email"
-                    name="email"
-                    placeholder="you@yourfarm.com"
-                  />
-                </label>
-                {mode === "buy" && (
-                  <label>
-                    Message to the owner
-                    <textarea
-                      required
-                      placeholder="Tell the owner a little about what you’re looking for…"
-                      rows={3}
-                      maxLength={1500}
-                    />
-                  </label>
-                )}
-                {days > 0 && mode === "rent" && (
-                  <div className="booking-total">
-                    <span>
-                      {currency(e.rent)} × {days} {days === 1 ? "day" : "days"}
-                    </span>
-                    <strong>{currency(days * e.rent)}</strong>
-                  </div>
-                )}
-                <button className="button primary full" type="submit">
-                  {mode === "rent" ? "Request to rent" : "Contact the owner"}
-                  <ArrowRight size={17} />
-                </button>
-                <p className="form-note">Frontend demo · No payment required</p>
-              </form>
-              <div className="booking-perks">
-                <span>
-                  <Handshake size={17} />
-                  Connect directly with the owner
-                </span>
-                <span>
-                  <CircleHelp size={17} />
-                  Confirm transport and availability
-                </span>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
 export default function App() {
-  const { page, navigate } = useRouter();
+  const { page, path, navigate } = useRouter();
   const [equipment, setEquipment] = useState<Equipment[]>(() => {
     const stored = readStorage<Equipment[]>("farmigo-listings", []);
     return [
@@ -491,14 +191,12 @@ export default function App() {
   const [draftMaxPrice, setDraftMaxPrice] = useState(maxPrice);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [listingKind, setListingKind] = useState("both");
-  const [selected, setSelected] = useState<Equipment | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [toast, setToast] = useState("");
   const equipmentSection = useRef<HTMLElement>(null);
   useEffect(() => {
     setDialog(null);
-    setSelected(null);
     setMobileMenu(false);
   }, [page]);
   useEffect(() => {
@@ -531,6 +229,13 @@ export default function App() {
     setSaved((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
+  };
+  const detailEquipment = equipment.find(
+    (e) => `/equipment/${encodeURIComponent(e.id)}` === path.split("?")[0],
+  );
+  const openEquipment = (e: Equipment) => {
+    setDialog(null);
+    navigate(`/equipment/${encodeURIComponent(e.id)}?mode=${mode}`);
   };
   const browse = () => {
     if (page !== "marketplace") {
@@ -932,7 +637,7 @@ export default function App() {
                       mode={mode}
                       saved={saved.includes(e.id)}
                       toggleSave={toggleSave}
-                      open={setSelected}
+                      open={openEquipment}
                     />
                   ))}
                 </div>
@@ -965,6 +670,23 @@ export default function App() {
             </section>
           </>
         )}
+        {page === "equipment" &&
+          (detailEquipment ? (
+            <EquipmentPage
+              equipment={detailEquipment}
+              saved={saved.includes(detailEquipment.id)}
+              toggleSave={toggleSave}
+              notify={setToast}
+            />
+          ) : (
+            <section className="empty-state page-width">
+              <h1>Equipment not found.</h1>
+              <p>This listing may have been removed.</p>
+              <PageLink page="marketplace" className="button primary">
+                Explore equipment
+              </PageLink>
+            </section>
+          ))}
         {page === "how-it-works" && (
           <HowItWorks onList={() => setDialog("listing")} />
         )}
@@ -1028,23 +750,6 @@ export default function App() {
             <X size={16} />
           </button>
         </div>
-      )}
-      {selected && (
-        <Detail
-          equipment={selected}
-          mode={
-            mode === "rent"
-              ? selected.rent > 0
-                ? "rent"
-                : "buy"
-              : selected.price > 0
-                ? "buy"
-                : "rent"
-          }
-          close={() => setSelected(null)}
-          saved={saved.includes(selected.id)}
-          toggleSave={toggleSave}
-        />
       )}
       {dialog === "filters" && (
         <Modal title="Find your perfect fit" close={() => setDialog(null)}>
@@ -1122,7 +827,7 @@ export default function App() {
                       toggleSave={toggleSave}
                       open={(item) => {
                         setDialog(null);
-                        setSelected(item);
+                        openEquipment(item);
                       }}
                     />
                   ))}

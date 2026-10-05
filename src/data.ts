@@ -25,6 +25,9 @@ export type Equipment = {
   condition: "Excellent" | "Good";
   description: string;
   tag?: string;
+  photos?: string[];
+  attachments?: string;
+  pickupNotes?: string;
 };
 export const images = {
   tractor:
