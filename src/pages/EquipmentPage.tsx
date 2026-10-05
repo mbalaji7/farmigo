@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { type Equipment, images } from "../data";
 import { PageLink, useRouter } from "../router";
+import { type EquipmentRequest } from "../marketplaceTypes";
 import PhotoGallery from "../components/PhotoGallery";
 import BookingPanel from "../components/BookingPanel";
 export default function EquipmentPage({
@@ -19,11 +20,15 @@ export default function EquipmentPage({
   saved,
   toggleSave,
   notify,
+  requests,
+  onRequest,
 }: {
   equipment: Equipment;
   saved: boolean;
   toggleSave: (id: string) => void;
   notify: (text: string) => void;
+  requests: EquipmentRequest[];
+  onRequest: (request: EquipmentRequest) => void;
 }) {
   const { path, navigate } = useRouter();
   const preferred = new URLSearchParams(path.split("?")[1]).get("mode");
@@ -185,6 +190,8 @@ export default function EquipmentPage({
             key={mode}
             equipment={e}
             mode={mode}
+            requests={requests}
+            onRequest={onRequest}
             close={() => navigate("marketplace")}
           />
         </aside>

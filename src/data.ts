@@ -31,6 +31,11 @@ export type Equipment = {
   brand?: string;
   status?: "active" | "paused" | "sold";
   blockedDates?: string[];
+  weeklyRent?: number;
+  monthlyRent?: number;
+  deposit?: number;
+  deliveryFee?: number;
+  deliveryAvailable?: boolean;
   attachments?: string;
   pickupNotes?: string;
 };

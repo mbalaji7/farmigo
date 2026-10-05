@@ -35,6 +35,7 @@ import EquipmentPage from "./pages/EquipmentPage";
 import { currency } from "./utils";
 import Dashboard from "./pages/Dashboard";
 import { usePersistentState } from "./usePersistentState";
+import { blockedFor, isRangeAvailable } from "./booking";
 import { type EquipmentRequest } from "./marketplaceTypes";
 import ListingForm from "./components/ListingForm";
 import { Photo } from "./components/PhotoGallery";
@@ -661,11 +662,35 @@ export default function App() {
               );
               setToast("Listing updated.");
             }}
-            onRequestStatus={(id, status) =>
+            onRequestStatus={(id, status) => {
+              const request = requests.find((r) => r.id === id);
+              const e = equipment.find((e) => e.id === request?.equipmentId);
+              if (
+                status === "accepted" &&
+                request?.kind === "rent" &&
+                !request.sample &&
+                request.start &&
+                request.end &&
+                e &&
+                !isRangeAvailable(
+                  request.start,
+                  request.end,
+                  blockedFor(
+                    e.id,
+                    e.blockedDates || [],
+                    requests.filter((r) => r.id !== id),
+                  ),
+                )
+              ) {
+                setToast(
+                  "These dates are no longer available. Resolve the conflict before accepting.",
+                );
+                return;
+              }
               setRequests((prev) =>
                 prev.map((r) => (r.id === id ? { ...r, status } : r)),
-              )
-            }
+              );
+            }}
             onSample={(request) => setRequests((prev) => [request, ...prev])}
           />
         )}
@@ -676,6 +701,8 @@ export default function App() {
               saved={saved.includes(detailEquipment.id)}
               toggleSave={toggleSave}
               notify={setToast}
+              requests={requests}
+              onRequest={(request) => setRequests((prev) => [request, ...prev])}
             />
           ) : (
             <section className="empty-state page-width">

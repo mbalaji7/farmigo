@@ -4132,3 +4132,150 @@ h1 {
     font-size: 12px;
   }
 }
+.rate-options {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #7d8e6b;
+  margin: 10px 0 17px;
+}
+.availability-calendar {
+  border: 1px solid #dce4cd;
+  padding: 13px;
+  border-radius: 9px;
+  background: #fafcf2;
+  margin: 19px 0;
+}
+.calendar-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+.calendar-heading button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+.calendar-heading button:hover {
+  background: #e6edd9;
+}
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+  text-align: center;
+}
+.calendar-grid .weekday {
+  font-size: 9px;
+  color: #8a9978;
+  padding-bottom: 9px;
+}
+.calendar-grid button {
+  font-size: 11px;
+  border-radius: 5px;
+  min-height: 32px;
+}
+.calendar-grid button:hover {
+  background: #e2eacc;
+}
+.calendar-grid button:disabled {
+  color: #c4cbb7;
+  text-decoration: line-through;
+  cursor: default;
+}
+.calendar-grid .chosen {
+  background: var(--green);
+  color: white;
+}
+.calendar-grid .in-range {
+  background: #e5ecd5;
+}
+.availability-calendar > p {
+  font-size: 9px;
+  color: #8c997c;
+  line-height: 1.8;
+  margin-top: 10px;
+}
+.transport-options {
+  padding: 12px;
+  border: 1px solid #d9e2c9;
+  border-radius: 7px;
+  margin: 0 0 20px;
+}
+.transport-options legend {
+  font-size: 11px;
+  padding: 0 6px;
+}
+.transport-options label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin: 9px 0;
+  font-size: 11px;
+}
+.transport-options input {
+  width: auto;
+  accent-color: var(--green);
+}
+.quote-breakdown {
+  border-top: 1px solid #dce5cd;
+  margin: 18px 0 22px;
+  padding-top: 15px;
+}
+.quote-breakdown > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  font-size: 11px;
+  color: #7e906c;
+  margin-bottom: 12px;
+  line-height: 1.7;
+}
+.quote-breakdown strong {
+  color: var(--green);
+  white-space: nowrap;
+}
+.quote-breakdown .quote-saving {
+  color: #689045;
+  font-size: 10px;
+}
+.quote-breakdown .quote-total {
+  border-top: 1px solid #dce5cd;
+  padding-top: 14px;
+  font-size: 13px;
+  color: var(--green);
+}
+.review-heading {
+  font-size: 16px;
+  margin: 22px 0 15px;
+}
+.review-details {
+  font-size: 12px;
+  margin: 0;
+}
+.review-details dt {
+  font-size: 10px;
+  color: #8a9a77;
+  margin-top: 14px;
+  margin-bottom: 5px;
+}
+.review-details dd {
+  margin: 0;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.review-back {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  width: 100%;
+  margin-top: 14px;
+  color: #7f936a;
+}

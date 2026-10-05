@@ -32,6 +32,11 @@ type Draft = {
   workingWidth: string;
   capacity: string;
   brand: string;
+  weeklyRent: string;
+  monthlyRent: string;
+  deposit: string;
+  deliveryFee: string;
+  deliveryAvailable: boolean;
 };
 const blank: Draft = {
   title: "",
@@ -54,6 +59,11 @@ const blank: Draft = {
   workingWidth: "",
   capacity: "",
   brand: "",
+  weeklyRent: "",
+  monthlyRent: "",
+  deposit: "",
+  deliveryFee: "75",
+  deliveryAvailable: true,
 };
 function starting(e?: Equipment): Draft {
   if (e)
@@ -69,6 +79,11 @@ function starting(e?: Equipment): Draft {
       workingWidth: e.workingWidth || "",
       capacity: e.capacity || "",
       brand: e.brand || "",
+      weeklyRent: String(e.weeklyRent || ""),
+      monthlyRent: String(e.monthlyRent || ""),
+      deposit: String(e.deposit || ""),
+      deliveryFee: String(e.deliveryFee ?? 75),
+      deliveryAvailable: e.deliveryAvailable ?? true,
     };
   try {
     return {
@@ -157,6 +172,10 @@ export default function ListingForm({
         .map((word) => word[0])
         .join("")
         .toUpperCase(),
+      weeklyRent: Number(draft.weeklyRent) || undefined,
+      monthlyRent: Number(draft.monthlyRent) || undefined,
+      deposit: Number(draft.deposit) || 0,
+      deliveryFee: Number(draft.deliveryFee) || 0,
       rating: equipment?.rating || "New",
       reviews: equipment?.reviews || 0,
       tag: equipment?.tag || "Just listed",
@@ -406,6 +425,41 @@ export default function ListingForm({
             maxLength: 80,
             placeholder: "e.g. 300 gallons per minute",
           })}
+        {draft.kind !== "buy" && (
+          <>
+            {(
+              ["weeklyRent", "monthlyRent", "deposit", "deliveryFee"] as const
+            ).map((key) => (
+              <label key={key}>
+                {key === "weeklyRent"
+                  ? "Weekly rental price ($, optional)"
+                  : key === "monthlyRent"
+                    ? "30-day rental price ($, optional)"
+                    : key === "deposit"
+                      ? "Refundable deposit ($)"
+                      : "Delivery fee ($)"}
+                <input
+                  type="number"
+                  min={key === "deposit" || key === "deliveryFee" ? 0 : 1}
+                  value={draft[key]}
+                  onChange={(ev) => change(key, ev.target.value)}
+                />
+              </label>
+            ))}
+            <label>
+              Delivery available
+              <select
+                value={draft.deliveryAvailable ? "yes" : "no"}
+                onChange={(ev) =>
+                  change("deliveryAvailable", ev.target.value === "yes")
+                }
+              >
+                <option value="yes">Yes</option>
+                <option value="no">Pickup only</option>
+              </select>
+            </label>
+          </>
+        )}
         {text("attachments", "Included attachments", {
           maxLength: 200,
           placeholder: "List what is included",
