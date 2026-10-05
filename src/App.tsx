@@ -33,6 +33,9 @@ import Community from "./pages/Community";
 import Modal from "./components/Modal";
 import EquipmentPage from "./pages/EquipmentPage";
 import { currency } from "./utils";
+import Dashboard from "./pages/Dashboard";
+import { usePersistentState } from "./usePersistentState";
+import { type EquipmentRequest } from "./marketplaceTypes";
 import ListingForm from "./components/ListingForm";
 import { Photo } from "./components/PhotoGallery";
 
@@ -186,6 +189,9 @@ export default function App() {
   const [draftCondition, setDraftCondition] = useState(condition);
   const [draftMaxPrice, setDraftMaxPrice] = useState(maxPrice);
   const [dialog, setDialog] = useState<Dialog>(null);
+  const [requests, setRequests, requestStorageError] = usePersistentState<
+    EquipmentRequest[]
+  >("farmigo-requests", []);
   const [editing, setEditing] = useState<Equipment | undefined>();
   const [showAll, setShowAll] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
@@ -259,6 +265,7 @@ export default function App() {
   const filtered = equipment
     .filter(
       (e) =>
+        (!e.status || e.status === "active") &&
         (mode === "rent" ? e.rent > 0 : e.price > 0) &&
         (category === "All equipment" || e.category === category) &&
         `${e.title} ${e.category} ${e.owner}`
@@ -636,6 +643,32 @@ export default function App() {
             </section>
           </>
         )}
+        {page === "dashboard" && (
+          <Dashboard
+            equipment={equipment}
+            requests={requests}
+            onEdit={(e) => {
+              setEditing(e);
+              setDialog("listing");
+            }}
+            onList={() => {
+              setEditing(undefined);
+              setDialog("listing");
+            }}
+            onUpdate={(entry) => {
+              setEquipment((prev) =>
+                prev.map((e) => (e.id === entry.id ? entry : e)),
+              );
+              setToast("Listing updated.");
+            }}
+            onRequestStatus={(id, status) =>
+              setRequests((prev) =>
+                prev.map((r) => (r.id === id ? { ...r, status } : r)),
+              )
+            }
+            onSample={(request) => setRequests((prev) => [request, ...prev])}
+          />
+        )}
         {page === "equipment" &&
           (detailEquipment ? (
             <EquipmentPage
@@ -704,6 +737,11 @@ export default function App() {
           </span>
         </div>
       </footer>
+      {requestStorageError && (
+        <p className="storage-warning" role="alert">
+          {requestStorageError}
+        </p>
+      )}
       {toast && (
         <div className="toast" role="status">
           <CheckCircle2 size={19} />
@@ -832,6 +870,15 @@ export default function App() {
               This is your frontend preview. Your saved equipment and listings
               stay on this browser, so you can pick up where you left off.
             </p>
+            <PageLink
+              className="account-row"
+              page="/dashboard"
+              onNavigate={() => setDialog(null)}
+            >
+              <Tractor size={19} />
+              <span>Owner dashboard</span>
+              <ChevronRight size={17} />
+            </PageLink>
             <button className="account-row" onClick={() => setDialog("saved")}>
               <Heart size={19} />
               <span>Saved equipment</span>

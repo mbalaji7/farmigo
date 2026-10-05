@@ -29,6 +29,8 @@ export type Equipment = {
   workingWidth?: string;
   capacity?: string;
   brand?: string;
+  status?: "active" | "paused" | "sold";
+  blockedDates?: string[];
   attachments?: string;
   pickupNotes?: string;
 };

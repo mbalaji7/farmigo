@@ -7,7 +7,12 @@ import {
   type ReactNode,
 } from "react";
 export type Page =
-  "marketplace" | "how-it-works" | "community" | "equipment" | "not-found";
+  | "marketplace"
+  | "how-it-works"
+  | "community"
+  | "dashboard"
+  | "equipment"
+  | "not-found";
 type Destination = "marketplace" | "how-it-works" | "community";
 export type RouteTarget = Destination | `/${string}`;
 const paths: Record<Destination, string> = {
@@ -19,6 +24,7 @@ const titles: Record<Page, string> = {
   marketplace: "Farmigo — Find your next workhorse.",
   "how-it-works": "How it works — Farmigo",
   community: "Our community — Farmigo",
+  dashboard: "Owner dashboard — Farmigo",
   equipment: "Equipment — Farmigo",
   "not-found": "Page not found — Farmigo",
 };
@@ -27,6 +33,7 @@ function currentPath() {
 }
 function getPage(path: string): Page {
   const pathname = path.split("?")[0].replace(/\/+$/, "") || "/";
+  if (pathname === "/dashboard") return "dashboard";
   if (/^\/equipment\/[^/]+$/.test(pathname)) return "equipment";
   return (
     (Object.entries(paths).find(([, value]) => value === pathname)?.[0] as

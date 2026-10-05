@@ -1,0 +1,21 @@
+export type EquipmentRequest = {
+  id: string;
+  equipmentId: string;
+  equipmentTitle: string;
+  owner: string;
+  customerName: string;
+  customerEmail: string;
+  kind: "rent" | "buy";
+  status: "pending" | "accepted" | "declined" | "cancelled";
+  start?: string;
+  end?: string;
+  days?: number;
+  delivery?: "pickup" | "delivery";
+  deliveryAddress?: string;
+  total: number;
+  deposit?: number;
+  message?: string;
+  createdAt: string;
+  sample?: boolean;
+  requesterId?: string;
+};
