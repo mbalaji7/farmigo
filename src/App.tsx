@@ -1,0 +1,1401 @@
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
+import {
+  ArrowDownUp,
+  ArrowRight,
+  ArrowUpRight,
+  BadgeCheck,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  CircleHelp,
+  Handshake,
+  Heart,
+  Leaf,
+  MapPin,
+  Menu,
+  Plus,
+  Search,
+  ShieldCheck,
+  SlidersHorizontal,
+  Sprout,
+  Star,
+  Tractor,
+  Trash2,
+  Truck,
+  UserRound,
+  Waves,
+  Wheat,
+  Wrench,
+  X,
+} from "lucide-react";
+import {
+  images,
+  initialEquipment,
+  type Category,
+  type Equipment,
+} from "./data";
+import { PageLink, useRouter } from "./router";
+import HowItWorks from "./pages/HowItWorks";
+import Community from "./pages/Community";
+
+type Mode = "rent" | "buy";
+type Dialog = "listing" | "saved" | "account" | "filters" | null;
+const categories = [
+  { name: "All equipment", icon: Sprout },
+  { name: "Tractors", icon: Tractor },
+  { name: "Harvesters", icon: Wheat },
+  { name: "Planting", icon: Sprout },
+  { name: "Hay & forage", icon: Leaf },
+  { name: "Attachments", icon: Wrench },
+  { name: "Irrigation", icon: Waves },
+];
+const currency = (n: number) =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(n);
+function readStorage<T>(key: string, fallback: T): T {
+  try {
+    const value = localStorage.getItem(key);
+    return value ? (JSON.parse(value) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+function localDate() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function Modal({
+  title,
+  children,
+  close,
+  wide = false,
+}: {
+  title: string;
+  children: ReactNode;
+  close: () => void;
+  wide?: boolean;
+}) {
+  const dialog = useRef<HTMLDivElement>(null);
+  const closer = useRef(close);
+  closer.current = close;
+  useEffect(() => {
+    const prior = document.activeElement as HTMLElement | null;
+    const oldOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const root = dialog.current;
+    root
+      ?.querySelector<HTMLElement>("button, input, select, textarea")
+      ?.focus();
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closer.current();
+      if (e.key === "Tab" && root) {
+        const items = Array.from(
+          root.querySelectorAll<HTMLElement>(
+            "button, input, select, textarea, a[href]",
+          ),
+        ).filter((el) => !el.hasAttribute("disabled"));
+        const first = items[0],
+          last = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last?.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", key);
+    return () => {
+      document.body.style.overflow = oldOverflow;
+      document.removeEventListener("keydown", key);
+      prior?.focus();
+    };
+  }, []);
+  return (
+    <div
+      className="modal-backdrop"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) close();
+      }}
+    >
+      <div
+        className={`modal ${wide ? "modal-wide" : ""}`}
+        ref={dialog}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+      >
+        <header className="modal-header">
+          <h2 id="modal-title">{title}</h2>
+          <button
+            className="icon-button"
+            aria-label="Close dialog"
+            onClick={close}
+          >
+            <X size={21} />
+          </button>
+        </header>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function EquipmentCard({
+  equipment: e,
+  mode,
+  saved,
+  toggleSave,
+  open,
+}: {
+  equipment: Equipment;
+  mode: Mode;
+  saved: boolean;
+  toggleSave: (id: string) => void;
+  open: (e: Equipment) => void;
+}) {
+  const displayMode =
+    mode === "rent"
+      ? e.rent > 0
+        ? "rent"
+        : "buy"
+      : e.price > 0
+        ? "buy"
+        : "rent";
+  return (
+    <article className="equipment-card">
+      <div className="card-photo">
+        <button
+          className="photo-button"
+          onClick={() => open(e)}
+          aria-label={`View ${e.title}`}
+        >
+          <img src={e.image} alt={`${e.title} on a farm`} loading="lazy" />
+        </button>
+        <span
+          className={`listing-badge ${displayMode === "buy" ? "sale" : ""}`}
+        >
+          {displayMode === "rent" ? "For rent" : "For sale"}
+        </span>
+        <button
+          className={`save-button ${saved ? "is-saved" : ""}`}
+          aria-label={`${saved ? "Unsave" : "Save"} ${e.title}`}
+          aria-pressed={saved}
+          onClick={() => toggleSave(e.id)}
+        >
+          <Heart size={18} fill={saved ? "currentColor" : "none"} />
+        </button>
+        {e.tag && (
+          <span className="photo-tag">
+            {e.tag === "Popular pick" && <span>✦</span>}
+            {e.tag}
+          </span>
+        )}
+      </div>
+      <div className="card-body">
+        <div className="card-category">
+          {e.category}
+          <span>
+            <Star size={12} fill="currentColor" /> {e.rating}
+          </span>
+        </div>
+        <button className="card-title" onClick={() => open(e)}>
+          {e.title}
+        </button>
+        <p className="card-location">
+          <MapPin size={13} />
+          {e.city}, {e.state}
+        </p>
+        <div className="card-specs">
+          <span>{e.year}</span>
+          <span>{e.hours.toLocaleString()} hrs</span>
+          {e.horsepower > 0 && <span>{e.horsepower} HP</span>}
+        </div>
+        <div className="card-bottom">
+          <div className="card-price">
+            {currency(displayMode === "rent" ? e.rent : e.price)}
+            {displayMode === "rent" && <span> / day</span>}
+          </div>
+          <button
+            className="card-arrow"
+            aria-label={`View details for ${e.title}`}
+            onClick={() => open(e)}
+          >
+            <ArrowUpRight size={18} />
+          </button>
+        </div>
+        <div className="card-owner">
+          <BadgeCheck size={14} />
+          {e.owner}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function Detail({
+  equipment: e,
+  mode,
+  close,
+  saved,
+  toggleSave,
+}: {
+  equipment: Equipment;
+  mode: Mode;
+  close: () => void;
+  saved: boolean;
+  toggleSave: (id: string) => void;
+}) {
+  const [start, setStart] = useState("");
+  const [end, setEnd] = useState("");
+  const [sent, setSent] = useState(false);
+  const days =
+    start && end
+      ? Math.max(
+          1,
+          Math.round(
+            (new Date(`${end}T12:00:00`).getTime() -
+              new Date(`${start}T12:00:00`).getTime()) /
+              86400000,
+          ) + 1,
+        )
+      : 0;
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    setSent(true);
+  };
+  return (
+    <Modal title={e.title} close={close} wide>
+      <div className="detail-grid">
+        <div>
+          <img className="detail-photo" src={e.image} alt={e.title} />
+          <div className="detail-location">
+            <MapPin size={15} />
+            {e.city}, {e.state}
+            <span>
+              <Star size={14} fill="currentColor" />
+              {e.rating} ({e.reviews} reviews)
+            </span>
+          </div>
+          <h3>Ready for a good day’s work.</h3>
+          <p className="detail-description">{e.description}</p>
+          <div className="detail-specs">
+            <div>
+              <span>Year</span>
+              <strong>{e.year}</strong>
+            </div>
+            <div>
+              <span>Hours</span>
+              <strong>{e.hours.toLocaleString()}</strong>
+            </div>
+            <div>
+              <span>Condition</span>
+              <strong>{e.condition}</strong>
+            </div>
+            {e.horsepower > 0 && (
+              <div>
+                <span>Power</span>
+                <strong>{e.horsepower} HP</strong>
+              </div>
+            )}
+          </div>
+          <div className="owner-profile">
+            <span className="owner-avatar">{e.initials}</span>
+            <div>
+              <strong>{e.owner}</strong>
+              <span>
+                <BadgeCheck size={14} /> Sample verified owner
+              </span>
+            </div>
+            <button
+              className={`icon-button ${saved ? "is-saved" : ""}`}
+              aria-label={saved ? "Unsave equipment" : "Save equipment"}
+              aria-pressed={saved}
+              onClick={() => toggleSave(e.id)}
+            >
+              <Heart size={20} fill={saved ? "currentColor" : "none"} />
+            </button>
+          </div>
+        </div>
+        <div className="booking-panel">
+          {sent ? (
+            <div className="success-panel">
+              <CheckCircle2 size={43} />
+              <h3>
+                {mode === "rent"
+                  ? "Your request is ready!"
+                  : "Your inquiry is ready!"}
+              </h3>
+              <p>
+                This is a frontend preview. Your request has not been sent to
+                the owner and no payment has been taken.
+              </p>
+              <button className="button primary full" onClick={close}>
+                Back to exploring
+                <ArrowRight size={17} />
+              </button>
+            </div>
+          ) : (
+            <>
+              <span className="eyebrow">
+                {mode === "rent"
+                  ? "MAKE IT YOURS FOR THE DAY"
+                  : "YOUR NEXT FARM INVESTMENT"}
+              </span>
+              <div className="detail-price">
+                {currency(mode === "rent" ? e.rent : e.price)}
+                {mode === "rent" && <span> / day</span>}
+              </div>
+              <p className="available">
+                <span />
+                Available to {mode === "rent" ? "rent" : "buy"}
+              </p>
+              <form onSubmit={submit}>
+                {mode === "rent" && (
+                  <div className="date-inputs">
+                    <label>
+                      Start date
+                      <input
+                        type="date"
+                        required
+                        min={localDate()}
+                        value={start}
+                        onInput={(ev) => {
+                          setStart(ev.currentTarget.value);
+                          if (end < ev.currentTarget.value) setEnd("");
+                        }}
+                      />
+                    </label>
+                    <label>
+                      End date
+                      <input
+                        type="date"
+                        required
+                        min={start || localDate()}
+                        value={end}
+                        onInput={(ev) => setEnd(ev.currentTarget.value)}
+                      />
+                    </label>
+                  </div>
+                )}
+                <label>
+                  Your name
+                  <input
+                    required
+                    name="name"
+                    autoComplete="name"
+                    placeholder="First and last name"
+                    maxLength={80}
+                  />
+                </label>
+                <label>
+                  Email address
+                  <input
+                    required
+                    type="email"
+                    autoComplete="email"
+                    name="email"
+                    placeholder="you@yourfarm.com"
+                  />
+                </label>
+                {mode === "buy" && (
+                  <label>
+                    Message to the owner
+                    <textarea
+                      required
+                      placeholder="Tell the owner a little about what you’re looking for…"
+                      rows={3}
+                      maxLength={1500}
+                    />
+                  </label>
+                )}
+                {days > 0 && mode === "rent" && (
+                  <div className="booking-total">
+                    <span>
+                      {currency(e.rent)} × {days} {days === 1 ? "day" : "days"}
+                    </span>
+                    <strong>{currency(days * e.rent)}</strong>
+                  </div>
+                )}
+                <button className="button primary full" type="submit">
+                  {mode === "rent" ? "Request to rent" : "Contact the owner"}
+                  <ArrowRight size={17} />
+                </button>
+                <p className="form-note">Frontend demo · No payment required</p>
+              </form>
+              <div className="booking-perks">
+                <span>
+                  <Handshake size={17} />
+                  Connect directly with the owner
+                </span>
+                <span>
+                  <CircleHelp size={17} />
+                  Confirm transport and availability
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+export default function App() {
+  const { page, navigate } = useRouter();
+  const [equipment, setEquipment] = useState<Equipment[]>(() => {
+    const stored = readStorage<Equipment[]>("farmigo-listings", []);
+    return [
+      ...initialEquipment,
+      ...(Array.isArray(stored)
+        ? stored.filter(
+            (e) =>
+              e &&
+              typeof e.id === "string" &&
+              typeof e.title === "string" &&
+              typeof e.rent === "number" &&
+              typeof e.price === "number" &&
+              typeof e.city === "string" &&
+              typeof e.state === "string" &&
+              typeof e.zip === "string",
+          )
+        : []),
+    ];
+  });
+  const [saved, setSaved] = useState<string[]>(() => {
+    const stored = readStorage<string[]>("farmigo-saved", []);
+    return Array.isArray(stored)
+      ? stored.filter((id) => typeof id === "string")
+      : [];
+  });
+  const [mode, setMode] = useState<Mode>("rent");
+  const [category, setCategory] = useState("All equipment");
+  const [query, setQuery] = useState("");
+  const [location, setLocation] = useState("");
+  const [search, setSearch] = useState({ query: "", location: "" });
+  const [sort, setSort] = useState("recommended");
+  const [condition, setCondition] = useState("Any condition");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [draftCondition, setDraftCondition] = useState(condition);
+  const [draftMaxPrice, setDraftMaxPrice] = useState(maxPrice);
+  const [dialog, setDialog] = useState<Dialog>(null);
+  const [listingKind, setListingKind] = useState("both");
+  const [selected, setSelected] = useState<Equipment | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const [toast, setToast] = useState("");
+  const equipmentSection = useRef<HTMLElement>(null);
+  useEffect(() => {
+    setDialog(null);
+    setSelected(null);
+    setMobileMenu(false);
+  }, [page]);
+  useEffect(() => {
+    try {
+      localStorage.setItem("farmigo-saved", JSON.stringify(saved));
+    } catch {
+      /* Saving remains available for this session. */
+    }
+  }, [saved]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "farmigo-listings",
+        JSON.stringify(
+          equipment.filter(
+            (e) => !initialEquipment.some((item) => item.id === e.id),
+          ),
+        ),
+      );
+    } catch {
+      /* New listings remain available for this session. */
+    }
+  }, [equipment]);
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(""), 4500);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+  const toggleSave = (id: string) => {
+    setSaved((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+  const browse = () => {
+    if (page !== "marketplace") {
+      navigate("marketplace");
+      setMobileMenu(false);
+      return;
+    }
+    equipmentSection.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+    setMobileMenu(false);
+  };
+  const clearFilters = () => {
+    setCategory("All equipment");
+    setQuery("");
+    setLocation("");
+    setSearch({ query: "", location: "" });
+    setCondition("Any condition");
+    setMaxPrice("");
+    setShowAll(false);
+  };
+  const activeFilters =
+    (condition !== "Any condition" ? 1 : 0) + (maxPrice ? 1 : 0);
+  const filtered = equipment
+    .filter(
+      (e) =>
+        (mode === "rent" ? e.rent > 0 : e.price > 0) &&
+        (category === "All equipment" || e.category === category) &&
+        `${e.title} ${e.category} ${e.owner}`
+          .toLowerCase()
+          .includes(search.query.toLowerCase()) &&
+        `${e.city} ${e.state} ${e.zip}`
+          .toLowerCase()
+          .includes(search.location.toLowerCase()) &&
+        (condition === "Any condition" || e.condition === condition) &&
+        (!maxPrice || (mode === "rent" ? e.rent : e.price) <= Number(maxPrice)),
+    )
+    .sort((a, b) =>
+      sort === "price-low"
+        ? mode === "rent"
+          ? a.rent - b.rent
+          : a.price - b.price
+        : sort === "price-high"
+          ? mode === "rent"
+            ? b.rent - a.rent
+            : b.price - a.price
+          : 0,
+    );
+  const visible = showAll ? filtered : filtered.slice(0, 4);
+  function createListing(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const selectedCategory = data.get("category") as Category;
+    const entry: Equipment = {
+      id: crypto.randomUUID(),
+      title: String(data.get("title")).trim(),
+      category: selectedCategory,
+      city: String(data.get("city")).trim(),
+      state: String(data.get("state")).trim().toUpperCase(),
+      zip: String(data.get("zip")).trim(),
+      year: Number(data.get("year")),
+      hours: Number(data.get("hours")),
+      horsepower: Number(data.get("horsepower")),
+      rent: listingKind === "buy" ? 0 : Number(data.get("rent")),
+      price: listingKind === "rent" ? 0 : Number(data.get("price")),
+      image:
+        selectedCategory === "Harvesters"
+          ? images.harvester
+          : selectedCategory === "Hay & forage"
+            ? images.baler
+            : selectedCategory === "Planting"
+              ? images.planter
+              : selectedCategory === "Irrigation"
+                ? images.field
+                : images.tractor,
+      owner: String(data.get("owner")).trim(),
+      initials: String(data.get("owner"))
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((s) => s[0])
+        .join("")
+        .toUpperCase(),
+      rating: "New",
+      reviews: 0,
+      condition: data.get("condition") as Equipment["condition"],
+      description: String(data.get("description")).trim(),
+      tag: "Just listed",
+    };
+    setEquipment((prev) => [...prev, entry]);
+    setMode(listingKind === "buy" ? "buy" : "rent");
+    clearFilters();
+    setShowAll(true);
+    setDialog(null);
+    setToast("Your demo listing has been added. It’s saved on this browser.");
+    window.setTimeout(browse, 100);
+  }
+  return (
+    <>
+      <div className="announcement">
+        <span>A little more access. A lot more possibility.</span>
+        <span className="announcement-right">
+          Built for the people who grow.
+          <Sprout size={14} />
+        </span>
+      </div>
+      <header className="site-header">
+        <div className="header-inner">
+          <PageLink
+            className="logo"
+            page="marketplace"
+            aria-label="Farmigo home"
+            onNavigate={() => setMobileMenu(false)}
+          >
+            <span className="logo-mark">
+              <Sprout size={27} strokeWidth={2} />
+            </span>
+            farmigo<span className="logo-dot">.</span>
+          </PageLink>
+          <nav
+            className={mobileMenu ? "main-nav nav-open" : "main-nav"}
+            aria-label="Main navigation"
+          >
+            <PageLink
+              page="marketplace"
+              className={page === "marketplace" ? "active" : ""}
+              aria-current={page === "marketplace" ? "page" : undefined}
+              onNavigate={() => setMobileMenu(false)}
+            >
+              Explore equipment
+            </PageLink>
+            <PageLink
+              page="how-it-works"
+              className={page === "how-it-works" ? "active" : ""}
+              aria-current={page === "how-it-works" ? "page" : undefined}
+              onNavigate={() => setMobileMenu(false)}
+            >
+              How it works
+            </PageLink>
+            <PageLink
+              page="community"
+              className={page === "community" ? "active" : ""}
+              aria-current={page === "community" ? "page" : undefined}
+              onNavigate={() => setMobileMenu(false)}
+            >
+              Our community
+            </PageLink>
+          </nav>
+          <div className="header-actions">
+            <button
+              className="saved-nav"
+              onClick={() => setDialog("saved")}
+              aria-label={`Saved equipment, ${saved.length} items`}
+            >
+              <Heart size={20} />
+              <span>Saved</span>
+              {saved.length > 0 && <b>{saved.length}</b>}
+            </button>
+            <span className="nav-divider" />
+            <button
+              className="button primary list-button"
+              onClick={() => setDialog("listing")}
+            >
+              <Plus size={17} />
+              List equipment
+            </button>
+            <button
+              className="account-button"
+              aria-label="Open your Farmigo account"
+              onClick={() => setDialog("account")}
+            >
+              <UserRound size={18} />
+            </button>
+            <button
+              className="mobile-menu-button icon-button"
+              aria-label={mobileMenu ? "Close navigation" : "Open navigation"}
+              aria-expanded={mobileMenu}
+              onClick={() => setMobileMenu(!mobileMenu)}
+            >
+              {mobileMenu ? <X size={23} /> : <Menu size={23} />}
+            </button>
+          </div>
+        </div>
+      </header>
+      <main key={page} className={`page-content ${page}-page`} tabIndex={-1}>
+        {page === "marketplace" && (
+          <>
+            <div className="marketplace-intro page-width">
+              <div>
+                <span className="eyebrow">THE FARMIGO MARKETPLACE</span>
+                <h1>Good equipment. Close to home.</h1>
+              </div>
+              <p>Find your next workhorse, and get growing.</p>
+            </div>
+            <section
+              className="search-section page-width"
+              aria-label="Find farm equipment"
+            >
+              <div className="search-topline">
+                <div className="mode-tabs" aria-label="Listing type">
+                  <button
+                    className={mode === "rent" ? "selected" : ""}
+                    aria-pressed={mode === "rent"}
+                    onClick={() => {
+                      setMode("rent");
+                      setMaxPrice("");
+                    }}
+                  >
+                    Rent equipment
+                  </button>
+                  <button
+                    className={mode === "buy" ? "selected" : ""}
+                    aria-pressed={mode === "buy"}
+                    onClick={() => {
+                      setMode("buy");
+                      setMaxPrice("");
+                    }}
+                  >
+                    Buy equipment
+                  </button>
+                </div>
+                <span className="search-hint">
+                  <MapPin size={14} />
+                  Your next workhorse could be just down the road.
+                </span>
+              </div>
+              <form
+                className="search-bar"
+                onSubmit={(ev) => {
+                  ev.preventDefault();
+                  setSearch({ query: query.trim(), location: location.trim() });
+                  setShowAll(true);
+                  browse();
+                }}
+              >
+                <label className="search-field">
+                  <Search size={21} />
+                  <span>
+                    <span className="field-label">
+                      What are you looking for?
+                    </span>
+                    <input
+                      placeholder="Tractors, harvesters, and more"
+                      aria-label="Search equipment"
+                      value={query}
+                      onChange={(ev) => setQuery(ev.target.value)}
+                    />
+                  </span>
+                </label>
+                <label className="search-field location-field">
+                  <MapPin size={21} />
+                  <span>
+                    <span className="field-label">Where do you need it?</span>
+                    <input
+                      placeholder="City, state, or ZIP code"
+                      aria-label="Search location"
+                      value={location}
+                      onChange={(ev) => setLocation(ev.target.value)}
+                    />
+                  </span>
+                </label>
+                <button className="button primary search-button" type="submit">
+                  <Search size={17} />
+                  Search equipment
+                </button>
+              </form>
+              <div className="search-foot">
+                <span>
+                  <BadgeCheck size={16} />
+                  People you can trust
+                </span>
+                <span>
+                  <Handshake size={16} />
+                  Straightforward, fair prices
+                </span>
+                <span>
+                  <Truck size={16} />
+                  Local equipment. Less hassle.
+                </span>
+                <span className="search-foot-end">
+                  A good season starts here.
+                  <ArrowUpRight size={14} />
+                </span>
+              </div>
+            </section>
+            <section
+              className="equipment-section page-width"
+              id="equipment"
+              ref={equipmentSection}
+            >
+              <div className="section-heading">
+                <div>
+                  <span className="eyebrow">
+                    THE RIGHT TOOL. RIGHT AROUND THE CORNER.
+                  </span>
+                  <h2>
+                    {search.query ||
+                    search.location ||
+                    category !== "All equipment" ||
+                    activeFilters
+                      ? "Find your next workhorse."
+                      : "Ready for your next big thing."}
+                  </h2>
+                  <p>
+                    From first light to the last row, find equipment that works
+                    as hard as you do.
+                  </p>
+                </div>
+                <button
+                  className="text-link section-view"
+                  onClick={() => {
+                    clearFilters();
+                    setShowAll(true);
+                  }}
+                >
+                  Explore all equipment
+                  <ArrowRight size={17} />
+                </button>
+              </div>
+              <div className="browse-toolbar">
+                <div
+                  className="category-tabs"
+                  aria-label="Equipment categories"
+                >
+                  {categories.map(({ name, icon: Icon }) => (
+                    <button
+                      key={name}
+                      className={
+                        category === name
+                          ? "category-tab selected"
+                          : "category-tab"
+                      }
+                      aria-pressed={category === name}
+                      onClick={() => {
+                        setCategory(name);
+                        setShowAll(true);
+                      }}
+                    >
+                      <Icon size={17} />
+                      {name}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  className={`filter-button ${activeFilters ? "filter-active" : ""}`}
+                  onClick={() => {
+                    setDraftCondition(condition);
+                    setDraftMaxPrice(maxPrice);
+                    setDialog("filters");
+                  }}
+                >
+                  <SlidersHorizontal size={17} />
+                  Filters{activeFilters > 0 && <b>{activeFilters}</b>}
+                </button>
+              </div>
+              <div className="results-toolbar">
+                <span>
+                  {search.query ||
+                  search.location ||
+                  category !== "All equipment" ||
+                  activeFilters
+                    ? `${filtered.length} matching ${filtered.length === 1 ? "listing" : "listings"}${search.location ? ` near ${search.location}` : ""}`
+                    : "A few favorites from the farm"}
+                  {(search.query ||
+                    search.location ||
+                    category !== "All equipment" ||
+                    activeFilters > 0) && (
+                    <button className="clear-filters" onClick={clearFilters}>
+                      Clear filters
+                      <X size={12} />
+                    </button>
+                  )}
+                </span>
+                <label className="sort-control">
+                  <ArrowDownUp size={13} />
+                  <span>Sort by:</span>
+                  <select
+                    aria-label="Sort equipment"
+                    value={sort}
+                    onChange={(e) => setSort(e.target.value)}
+                  >
+                    <option value="recommended">Recommended</option>
+                    <option value="price-low">Price: low to high</option>
+                    <option value="price-high">Price: high to low</option>
+                  </select>
+                  <ChevronDown size={13} />
+                </label>
+              </div>
+              {visible.length ? (
+                <div
+                  className="equipment-grid"
+                  key={`${mode}-${category}-${search.query}-${search.location}-${condition}-${maxPrice}-${sort}`}
+                >
+                  {visible.map((e) => (
+                    <EquipmentCard
+                      key={e.id}
+                      equipment={e}
+                      mode={mode}
+                      saved={saved.includes(e.id)}
+                      toggleSave={toggleSave}
+                      open={setSelected}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <Search size={32} />
+                  <h3>No equipment in this field yet.</h3>
+                  <p>
+                    Try another category, a broader search, or an Iowa city like
+                    Des Moines or Ames.
+                  </p>
+                  <button className="button primary" onClick={clearFilters}>
+                    Clear filters
+                    <ArrowRight size={17} />
+                  </button>
+                </div>
+              )}
+              {!showAll && filtered.length > 4 && (
+                <div className="more-equipment">
+                  <button
+                    className="button outline"
+                    onClick={() => setShowAll(true)}
+                  >
+                    Discover more equipment
+                    <ArrowRight size={17} />
+                  </button>
+                  <span>Something for every acre.</span>
+                </div>
+              )}
+            </section>
+          </>
+        )}
+        {page === "how-it-works" && (
+          <HowItWorks onList={() => setDialog("listing")} />
+        )}
+        {page === "community" && (
+          <Community onList={() => setDialog("listing")} />
+        )}
+        {page === "not-found" && (
+          <section className="empty-state not-found page-width">
+            <Sprout size={40} />
+            <h1>This field is still unplanted.</h1>
+            <p>
+              We couldn’t find that page. Let’s get you back to the equipment.
+            </p>
+            <PageLink page="marketplace" className="button primary">
+              Back to the marketplace
+              <ArrowRight size={17} />
+            </PageLink>
+          </section>
+        )}
+      </main>
+      <footer className="site-footer">
+        <div className="page-width footer-main">
+          <div>
+            <PageLink className="logo" page="marketplace">
+              <span className="logo-mark">
+                <Sprout size={26} />
+              </span>
+              farmigo<span className="logo-dot">.</span>
+            </PageLink>
+            <p>Grow more, together.</p>
+          </div>
+          <div className="footer-links">
+            <PageLink page="marketplace">Explore equipment</PageLink>
+            <PageLink page="how-it-works">How it works</PageLink>
+            <PageLink page="community">Our community</PageLink>
+            <button onClick={() => setDialog("listing")}>List equipment</button>
+          </div>
+          <div className="footer-community">
+            <Leaf size={16} />
+            Rooted in a better way to farm.
+          </div>
+        </div>
+        <div className="page-width footer-bottom">
+          <span>
+            © {new Date().getFullYear()} Farmigo. Made for the way you farm.
+          </span>
+          <span>
+            Frontend preview · Sample listings · Images for illustration
+          </span>
+        </div>
+      </footer>
+      {toast && (
+        <div className="toast" role="status">
+          <CheckCircle2 size={19} />
+          {toast}
+          <button
+            className="icon-button"
+            aria-label="Dismiss notification"
+            onClick={() => setToast("")}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+      {selected && (
+        <Detail
+          equipment={selected}
+          mode={
+            mode === "rent"
+              ? selected.rent > 0
+                ? "rent"
+                : "buy"
+              : selected.price > 0
+                ? "buy"
+                : "rent"
+          }
+          close={() => setSelected(null)}
+          saved={saved.includes(selected.id)}
+          toggleSave={toggleSave}
+        />
+      )}
+      {dialog === "filters" && (
+        <Modal title="Find your perfect fit" close={() => setDialog(null)}>
+          <form
+            className="modal-form"
+            onSubmit={(ev) => {
+              ev.preventDefault();
+              setCondition(draftCondition);
+              setMaxPrice(draftMaxPrice);
+              setShowAll(true);
+              setDialog(null);
+            }}
+          >
+            <p className="modal-intro">
+              A few details to narrow down your next workhorse.
+            </p>
+            <label>
+              Equipment condition
+              <select
+                value={draftCondition}
+                onChange={(ev) => setDraftCondition(ev.target.value)}
+              >
+                <option>Any condition</option>
+                <option>Excellent</option>
+                <option>Good</option>
+              </select>
+            </label>
+            <label>
+              Maximum {mode === "rent" ? "daily rental rate" : "purchase price"}{" "}
+              (USD)
+              <input
+                type="number"
+                min="0"
+                step="1"
+                placeholder={mode === "rent" ? "e.g. 250" : "e.g. 100000"}
+                value={draftMaxPrice}
+                onChange={(ev) => setDraftMaxPrice(ev.target.value)}
+              />
+            </label>
+            <div className="form-actions">
+              <button
+                className="button outline"
+                type="button"
+                onClick={() => {
+                  setDraftCondition("Any condition");
+                  setDraftMaxPrice("");
+                }}
+              >
+                Reset
+              </button>
+              <button className="button primary" type="submit">
+                Show equipment
+                <ArrowRight size={17} />
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+      {dialog === "saved" && (
+        <Modal title="Your saved equipment" close={() => setDialog(null)} wide>
+          {equipment.some((e) => saved.includes(e.id)) ? (
+            <div className="saved-content">
+              <p className="modal-intro">
+                Keep your favorites close for when the season calls.
+              </p>
+              <div className="saved-grid">
+                {equipment
+                  .filter((e) => saved.includes(e.id))
+                  .map((e) => (
+                    <EquipmentCard
+                      key={e.id}
+                      equipment={e}
+                      mode={mode}
+                      saved
+                      toggleSave={toggleSave}
+                      open={(item) => {
+                        setDialog(null);
+                        setSelected(item);
+                      }}
+                    />
+                  ))}
+              </div>
+            </div>
+          ) : (
+            <div className="empty-state">
+              <Heart size={35} />
+              <h3>A little room for your favorites.</h3>
+              <p>Tap the heart on any equipment listing to save it here.</p>
+              <button
+                className="button primary"
+                onClick={() => {
+                  setDialog(null);
+                  browse();
+                }}
+              >
+                Explore equipment
+                <ArrowRight size={17} />
+              </button>
+            </div>
+          )}
+        </Modal>
+      )}
+      {dialog === "account" && (
+        <Modal
+          title="Your little corner of Farmigo"
+          close={() => setDialog(null)}
+        >
+          <div className="account-content">
+            <span className="account-big-avatar">
+              <UserRound size={32} />
+            </span>
+            <h3>Welcome, good neighbor.</h3>
+            <p>
+              This is your frontend preview. Your saved equipment and listings
+              stay on this browser, so you can pick up where you left off.
+            </p>
+            <button className="account-row" onClick={() => setDialog("saved")}>
+              <Heart size={19} />
+              <span>Saved equipment</span>
+              <b>{saved.length}</b>
+              <ChevronRight size={17} />
+            </button>
+            <button
+              className="account-row"
+              onClick={() => {
+                setDialog(null);
+                clearFilters();
+                setShowAll(true);
+                browse();
+              }}
+            >
+              <Tractor size={19} />
+              <span>Explore the marketplace</span>
+              <ChevronRight size={17} />
+            </button>
+            <button
+              className="button primary full"
+              onClick={() => setDialog("listing")}
+            >
+              <Plus size={17} />
+              Create a listing
+            </button>
+            {equipment.filter(
+              (e) => !initialEquipment.some((item) => item.id === e.id),
+            ).length > 0 && (
+              <div className="your-listings">
+                <h4>Your demo listings</h4>
+                {equipment
+                  .filter(
+                    (e) => !initialEquipment.some((item) => item.id === e.id),
+                  )
+                  .map((e) => (
+                    <div className="your-listing" key={e.id}>
+                      <span>{e.title}</span>
+                      <button
+                        className="icon-button"
+                        aria-label={`Remove demo listing ${e.title}`}
+                        onClick={() => {
+                          setEquipment((prev) =>
+                            prev.filter((item) => item.id !== e.id),
+                          );
+                          setSaved((prev) => prev.filter((id) => id !== e.id));
+                          setToast("Demo listing removed from this browser.");
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            )}
+            <span className="form-note">
+              Accounts and messaging will arrive with the backend.
+            </span>
+          </div>
+        </Modal>
+      )}
+      {dialog === "listing" && (
+        <Modal
+          title="Put your equipment to work."
+          close={() => setDialog(null)}
+          wide
+        >
+          <form className="modal-form listing-form" onSubmit={createListing}>
+            <p className="modal-intro">
+              A good tool deserves another good season. Create a demo listing
+              saved to this browser.
+            </p>
+            <div className="listing-form-grid">
+              <label className="span-two">
+                How would you like to list it?
+                <select
+                  name="listingKind"
+                  value={listingKind}
+                  onChange={(ev) => setListingKind(ev.target.value)}
+                >
+                  <option value="both">Available to rent and buy</option>
+                  <option value="rent">For rent only</option>
+                  <option value="buy">For sale only</option>
+                </select>
+              </label>
+              <label className="span-two">
+                Equipment name
+                <input
+                  name="title"
+                  required
+                  placeholder="e.g. John Deere 6M 220"
+                  maxLength={80}
+                  pattern=".*\S.*"
+                />
+              </label>
+              <label>
+                Category
+                <select name="category">
+                  {categories.slice(1).map((c) => (
+                    <option key={c.name}>{c.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Condition
+                <select name="condition">
+                  <option>Excellent</option>
+                  <option>Good</option>
+                </select>
+              </label>
+              <label>
+                Year
+                <input
+                  name="year"
+                  type="number"
+                  min="1950"
+                  max={new Date().getFullYear() + 1}
+                  defaultValue={2023}
+                  required
+                />
+              </label>
+              <label>
+                Operating hours
+                <input
+                  name="hours"
+                  type="number"
+                  min="0"
+                  defaultValue={0}
+                  required
+                />
+              </label>
+              <label>
+                Horsepower
+                <input
+                  name="horsepower"
+                  type="number"
+                  min="0"
+                  defaultValue={0}
+                  required
+                />
+              </label>
+              <label>
+                Farm or owner name
+                <input
+                  name="owner"
+                  required
+                  placeholder="Your farm’s name"
+                  maxLength={60}
+                  pattern=".*\S.*"
+                />
+              </label>
+              <label>
+                City
+                <input
+                  name="city"
+                  required
+                  placeholder="Des Moines"
+                  maxLength={60}
+                  pattern=".*\S.*"
+                />
+              </label>
+              <div className="state-zip">
+                <label>
+                  State
+                  <input
+                    name="state"
+                    required
+                    placeholder="IA"
+                    minLength={2}
+                    maxLength={2}
+                    pattern="[A-Za-z]{2}"
+                    title="Two-letter state abbreviation"
+                  />
+                </label>
+                <label>
+                  ZIP code
+                  <input
+                    name="zip"
+                    required
+                    placeholder="50309"
+                    inputMode="numeric"
+                    pattern="[0-9]{5}"
+                    maxLength={5}
+                  />
+                </label>
+              </div>
+              {listingKind !== "buy" && (
+                <label>
+                  Rental price / day ($)
+                  <input
+                    name="rent"
+                    type="number"
+                    min="1"
+                    placeholder="245"
+                    required
+                  />
+                </label>
+              )}
+              {listingKind !== "rent" && (
+                <label>
+                  Sale price ($)
+                  <input
+                    name="price"
+                    type="number"
+                    min="1"
+                    placeholder="148500"
+                    required
+                  />
+                </label>
+              )}
+              <label className="span-two">
+                A little about your equipment
+                <textarea
+                  name="description"
+                  required
+                  placeholder="Describe your equipment, what it’s great for, and any pickup details…"
+                  rows={3}
+                  maxLength={2000}
+                />
+              </label>
+            </div>
+            <div className="listing-form-footer">
+              <p>
+                <ShieldCheck size={16} />
+                Illustration added by category. This listing stays on your
+                browser.
+              </p>
+              <button className="button primary" type="submit">
+                Create demo listing
+                <ArrowRight size={17} />
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </>
+  );
+}
