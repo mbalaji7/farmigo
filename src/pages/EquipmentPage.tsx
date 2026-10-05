@@ -11,6 +11,7 @@ import {
   Truck,
   Tractor,
 } from "lucide-react";
+import { currency } from "../utils";
 import { type Equipment, images } from "../data";
 import { PageLink, useRouter } from "../router";
 import { ownerPath } from "../ownerData";
@@ -174,7 +175,7 @@ export default function EquipmentPage({
             </div>
           </div>
         </div>
-        <aside className="detail-page-booking">
+        <aside className="detail-page-booking" id="booking">
           {e.rent > 0 && e.price > 0 && (
             <div className="detail-mode-tabs">
               <button
@@ -210,6 +211,7 @@ export default function EquipmentPage({
           />
         </aside>
       </div>
+      {(!e.status || e.status === "active") && <div className="mobile-booking-bar"><span><strong>{currency(mode === "rent" ? e.rent : e.price)}</strong>{mode === "rent" ? " / day" : " to buy"}</span><a className="button primary" href="#booking">{mode === "rent" ? "Choose dates" : "Purchase inquiry"}</a></div>}
     </div>
   );
 }

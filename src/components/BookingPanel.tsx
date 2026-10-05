@@ -9,6 +9,7 @@ import {
 import { type Equipment } from "../data";
 import { type DemoProfile } from "../accountTypes";
 import { type EquipmentRequest } from "../marketplaceTypes";
+import { useRouter } from "../router";
 import { currency, localDate } from "../utils";
 import {
   blockedFor,
@@ -32,8 +33,12 @@ export default function BookingPanel({
   requests: EquipmentRequest[];
   onRequest: (request: EquipmentRequest) => void;
 }) {
-  const [start, setStart] = useState(""),
-    [end, setEnd] = useState(""),
+  const {path} = useRouter();
+  const params = new URLSearchParams(path.split("?")[1]);
+  const initialStart = params.get("start") || "", initialEnd = params.get("end") || "";
+  const validInitial = initialStart >= localDate() && isRangeAvailable(initialStart,initialEnd,blockedFor(e.id,e.blockedDates || [], requests));
+  const [start, setStart] = useState(validInitial ? initialStart : ""),
+    [end, setEnd] = useState(validInitial ? initialEnd : ""),
     [name, setName] = useState(profile?.name || ""),
     [email, setEmail] = useState(profile?.email || ""),
     [message, setMessage] = useState(""),

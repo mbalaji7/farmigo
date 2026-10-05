@@ -67,3 +67,4 @@ When hosting the production build, configure the host to serve `index.html` for 
 ## Second priority feature batch
 
 1. **Equipment comparison:** persist up to three selections, compare rental/purchase prices, specifications, attachments and transport side by side at `/compare`, and remove/clear selections. Mobile tables scroll within their own region. Shared readability improvements increase supporting text contrast, form text size, control targets, card spacing, and mobile typography.
+2. **Date-based search:** optional start/end dates filter out blocked dates and accepted bookings, reject incomplete/past/overlong ranges, survive shared URLs, and prefill booking forms. A mobile booking bar links to the date controls. Availability remains browser-local.

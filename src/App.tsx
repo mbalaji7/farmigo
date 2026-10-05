@@ -36,6 +36,7 @@ import Dashboard from "./pages/Dashboard";
 import { usePersistentState } from "./usePersistentState";
 import {
   readFilters,
+  availableForSearch,
   filterQuery,
   matchesEquipment,
   emptyAdvanced,
@@ -43,6 +44,7 @@ import {
   distanceFrom,
   type AdvancedFilters,
 } from "./discovery";
+import { localDate } from "./utils";
 import { blockedFor, isRangeAvailable } from "./booking";
 import { type EquipmentRequest } from "./marketplaceTypes";
 import ListingForm from "./components/ListingForm";
@@ -129,6 +131,9 @@ export default function App() {
     query: initialFilters.query,
     location: initialFilters.location,
   });
+  const [dates, setDates] = useState({start: initialFilters.start || "", end: initialFilters.end || ""});
+  const [draftDates, setDraftDates] = useState(dates);
+  const [dateError, setDateError] = useState("");
   const [sort, setSort] = useState(initialFilters.sort);
   const [condition, setCondition] = useState(initialFilters.condition);
   const [maxPrice, setMaxPrice] = useState(initialFilters.maxPrice);
@@ -184,6 +189,7 @@ export default function App() {
       updateQuery(
         filterQuery({
           ...advanced,
+          ...dates,
           mode,
           category,
           condition,
@@ -195,6 +201,7 @@ export default function App() {
       );
   }, [
     page,
+    dates,
     mode,
     category,
     condition,
@@ -208,6 +215,8 @@ export default function App() {
     const restore = () => {
       if (window.location.pathname !== "/") return;
       const f = readFilters(window.location.search);
+      setDates({start:f.start || "",end:f.end || ""});
+      setDraftDates({start:f.start || "",end:f.end || ""});
       setMode(f.mode);
       setCategory(f.category);
       setCondition(f.condition);
@@ -245,7 +254,9 @@ export default function App() {
   );
   const openEquipment = (e: Equipment) => {
     setDialog(null);
-    navigate(`/equipment/${encodeURIComponent(e.id)}?mode=${mode}`);
+    const params = new URLSearchParams({mode});
+    if(mode === "rent" && dates.start && dates.end) { params.set("start",dates.start);params.set("end",dates.end); }
+    navigate(`/equipment/${encodeURIComponent(e.id)}?${params}`);
   };
   const browse = () => {
     if (page !== "marketplace") {
@@ -260,6 +271,7 @@ export default function App() {
     setMobileMenu(false);
   };
   const clearFilters = () => {
+    setDates({start:"",end:""});setDraftDates({start:"",end:""});setDateError("");
     setCategory("All equipment");
     setQuery("");
     setLocation("");
@@ -277,6 +289,7 @@ export default function App() {
     ).length;
   const appliedFilters = {
     ...advanced,
+    ...dates,
     mode,
     category,
     condition,
@@ -286,7 +299,7 @@ export default function App() {
     location: search.location,
   };
   const filtered = equipmentWithReviews
-    .filter((e) => matchesEquipment(e, appliedFilters))
+    .filter((e) => matchesEquipment(e, appliedFilters) && availableForSearch(e,appliedFilters,requests,localDate()))
     .sort((a, b) =>
       sort === "price-low"
         ? mode === "rent"
@@ -536,6 +549,8 @@ export default function App() {
                 className="search-bar"
                 onSubmit={(ev) => {
                   ev.preventDefault();
+                  if(mode === "rent" && (draftDates.start || draftDates.end) && (!draftDates.start || !draftDates.end || draftDates.start < localDate() || !isRangeAvailable(draftDates.start,draftDates.end,new Set()))) { setDateError("Choose both dates, today or later, for a rental of 1–90 days."); return; }
+                  setDateError("");setDates(draftDates);
                   setSearch({ query: query.trim(), location: location.trim() });
                   setShowAll(true);
                   browse();
@@ -567,11 +582,14 @@ export default function App() {
                     />
                   </span>
                 </label>
+                {mode === "rent" && <div className="search-dates"><label>Rental start<input aria-label="Rental start" type="date" min={localDate()} value={draftDates.start} onInput={ev=>{const value=ev.currentTarget.value;setDraftDates(prev=>({...prev,start:value}));}}/></label><label>Rental end<input aria-label="Rental end" type="date" min={draftDates.start || localDate()} value={draftDates.end} onInput={ev=>{const value=ev.currentTarget.value;setDraftDates(prev=>({...prev,end:value}));}}/></label></div>}
                 <button className="button primary search-button" type="submit">
                   <Search size={17} />
                   Search equipment
                 </button>
               </form>
+              {dateError && <p role="alert" className="inline-error">{dateError}</p>}
+              {mode === "rent" && dates.start && <p className="date-summary" role="status">Available {dates.start} through {dates.end} · Browser-local availability</p>}
               <div className="search-foot">
                 <span>
                   <BadgeCheck size={16} />
