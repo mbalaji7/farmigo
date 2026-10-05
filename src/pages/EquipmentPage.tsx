@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { type Equipment, images } from "../data";
 import { PageLink, useRouter } from "../router";
+import { type DemoProfile } from "../accountTypes";
 import { type EquipmentRequest } from "../marketplaceTypes";
 import PhotoGallery from "../components/PhotoGallery";
 import BookingPanel from "../components/BookingPanel";
@@ -20,6 +21,7 @@ export default function EquipmentPage({
   saved,
   toggleSave,
   notify,
+  profile,
   requests,
   onRequest,
 }: {
@@ -27,6 +29,7 @@ export default function EquipmentPage({
   saved: boolean;
   toggleSave: (id: string) => void;
   notify: (text: string) => void;
+  profile: DemoProfile | null;
   requests: EquipmentRequest[];
   onRequest: (request: EquipmentRequest) => void;
 }) {
@@ -190,6 +193,7 @@ export default function EquipmentPage({
             key={mode}
             equipment={e}
             mode={mode}
+            profile={profile}
             requests={requests}
             onRequest={onRequest}
             close={() => navigate("marketplace")}

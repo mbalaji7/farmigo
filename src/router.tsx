@@ -10,6 +10,7 @@ export type Page =
   | "marketplace"
   | "how-it-works"
   | "community"
+  | "account"
   | "dashboard"
   | "equipment"
   | "not-found";
@@ -24,6 +25,7 @@ const titles: Record<Page, string> = {
   marketplace: "Farmigo — Find your next workhorse.",
   "how-it-works": "How it works — Farmigo",
   community: "Our community — Farmigo",
+  account: "Your account — Farmigo",
   dashboard: "Owner dashboard — Farmigo",
   equipment: "Equipment — Farmigo",
   "not-found": "Page not found — Farmigo",
@@ -33,6 +35,7 @@ function currentPath() {
 }
 function getPage(path: string): Page {
   const pathname = path.split("?")[0].replace(/\/+$/, "") || "/";
+  if (pathname === "/account") return "account";
   if (pathname === "/dashboard") return "dashboard";
   if (/^\/equipment\/[^/]+$/.test(pathname)) return "equipment";
   return (

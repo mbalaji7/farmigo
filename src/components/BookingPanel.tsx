@@ -7,6 +7,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { type Equipment } from "../data";
+import { type DemoProfile } from "../accountTypes";
 import { type EquipmentRequest } from "../marketplaceTypes";
 import { currency, localDate } from "../utils";
 import {
@@ -20,19 +21,21 @@ export default function BookingPanel({
   equipment: e,
   mode,
   close,
+  profile,
   requests,
   onRequest,
 }: {
   equipment: Equipment;
   mode: "rent" | "buy";
   close: () => void;
+  profile: DemoProfile | null;
   requests: EquipmentRequest[];
   onRequest: (request: EquipmentRequest) => void;
 }) {
   const [start, setStart] = useState(""),
     [end, setEnd] = useState(""),
-    [name, setName] = useState(""),
-    [email, setEmail] = useState(""),
+    [name, setName] = useState(profile?.name || ""),
+    [email, setEmail] = useState(profile?.email || ""),
     [message, setMessage] = useState(""),
     [transport, setTransport] = useState<"pickup" | "delivery">("pickup"),
     [address, setAddress] = useState(""),

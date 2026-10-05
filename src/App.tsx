@@ -6,7 +6,6 @@ import {
   BadgeCheck,
   CheckCircle2,
   ChevronDown,
-  ChevronRight,
   Handshake,
   Heart,
   Leaf,
@@ -16,9 +15,7 @@ import {
   Search,
   SlidersHorizontal,
   Sprout,
-  Star,
   Tractor,
-  Trash2,
   Truck,
   UserRound,
   Waves,
@@ -32,16 +29,17 @@ import HowItWorks from "./pages/HowItWorks";
 import Community from "./pages/Community";
 import Modal from "./components/Modal";
 import EquipmentPage from "./pages/EquipmentPage";
-import { currency } from "./utils";
 import Dashboard from "./pages/Dashboard";
 import { usePersistentState } from "./usePersistentState";
 import { blockedFor, isRangeAvailable } from "./booking";
 import { type EquipmentRequest } from "./marketplaceTypes";
 import ListingForm from "./components/ListingForm";
-import { Photo } from "./components/PhotoGallery";
+import EquipmentCard from "./components/EquipmentCard";
+import Account from "./pages/Account";
+import { type DemoProfile, type ProfileInput } from "./accountTypes";
 
 type Mode = "rent" | "buy";
-type Dialog = "listing" | "saved" | "account" | "filters" | null;
+type Dialog = "listing" | "saved" | "filters" | null;
 const categories = [
   { name: "All equipment", icon: Sprout },
   { name: "Tractors", icon: Tractor },
@@ -60,100 +58,17 @@ function readStorage<T>(key: string, fallback: T): T {
   }
 }
 
-function EquipmentCard({
-  equipment: e,
-  mode,
-  saved,
-  toggleSave,
-  open,
-}: {
-  equipment: Equipment;
-  mode: Mode;
-  saved: boolean;
-  toggleSave: (id: string) => void;
-  open: (e: Equipment) => void;
-}) {
-  const displayMode =
-    mode === "rent"
-      ? e.rent > 0
-        ? "rent"
-        : "buy"
-      : e.price > 0
-        ? "buy"
-        : "rent";
-  return (
-    <article className="equipment-card">
-      <div className="card-photo">
-        <button
-          className="photo-button"
-          onClick={() => open(e)}
-          aria-label={`View ${e.title}`}
-        >
-          <Photo src={e.image} alt={`${e.title} on a farm`} loading="lazy" />
-        </button>
-        <span
-          className={`listing-badge ${displayMode === "buy" ? "sale" : ""}`}
-        >
-          {displayMode === "rent" ? "For rent" : "For sale"}
-        </span>
-        <button
-          className={`save-button ${saved ? "is-saved" : ""}`}
-          aria-label={`${saved ? "Unsave" : "Save"} ${e.title}`}
-          aria-pressed={saved}
-          onClick={() => toggleSave(e.id)}
-        >
-          <Heart size={18} fill={saved ? "currentColor" : "none"} />
-        </button>
-        {e.tag && (
-          <span className="photo-tag">
-            {e.tag === "Popular pick" && <span>✦</span>}
-            {e.tag}
-          </span>
-        )}
-      </div>
-      <div className="card-body">
-        <div className="card-category">
-          {e.category}
-          <span>
-            <Star size={12} fill="currentColor" /> {e.rating}
-          </span>
-        </div>
-        <button className="card-title" onClick={() => open(e)}>
-          {e.title}
-        </button>
-        <p className="card-location">
-          <MapPin size={13} />
-          {e.city}, {e.state}
-        </p>
-        <div className="card-specs">
-          <span>{e.year}</span>
-          <span>{e.hours.toLocaleString()} hrs</span>
-          {e.horsepower > 0 && <span>{e.horsepower} HP</span>}
-        </div>
-        <div className="card-bottom">
-          <div className="card-price">
-            {currency(displayMode === "rent" ? e.rent : e.price)}
-            {displayMode === "rent" && <span> / day</span>}
-          </div>
-          <button
-            className="card-arrow"
-            aria-label={`View details for ${e.title}`}
-            onClick={() => open(e)}
-          >
-            <ArrowUpRight size={18} />
-          </button>
-        </div>
-        <div className="card-owner">
-          <BadgeCheck size={14} />
-          {e.owner}
-        </div>
-      </div>
-    </article>
-  );
-}
-
 export default function App() {
   const { page, path, navigate } = useRouter();
+  const [profiles, setProfiles] = usePersistentState<DemoProfile[]>(
+    "farmigo-profiles",
+    [],
+  );
+  const [session, setSession] = usePersistentState<string | null>(
+    "farmigo-session",
+    null,
+  );
+  const profile = profiles.find((p) => p.id === session) || null;
   const [equipment, setEquipment] = useState<Equipment[]>(() => {
     const stored = readStorage<Equipment[]>("farmigo-listings", []);
     return [
@@ -291,6 +206,7 @@ export default function App() {
     );
   const visible = showAll ? filtered : filtered.slice(0, 4);
   function saveListing(entry: Equipment) {
+    entry.ownerId = entry.ownerId || profile?.id;
     setEquipment((prev) =>
       prev.some((e) => e.id === entry.id)
         ? prev.map((e) => (e.id === entry.id ? entry : e))
@@ -303,6 +219,33 @@ export default function App() {
     setShowAll(true);
     setToast("Listing saved on this browser.");
     navigate(`/equipment/${entry.id}?mode=${entry.rent > 0 ? "rent" : "buy"}`);
+  }
+  function authenticate(input: ProfileInput, kind: "signup" | "signin") {
+    const found = profiles.find(
+      (p) => p.email.toLowerCase() === input.email.toLowerCase(),
+    );
+    if (kind === "signin") {
+      if (!found)
+        return "No local demo account uses that email. Create one first.";
+      setSession(found.id);
+      return "";
+    }
+    if (found) return "That email already has a demo account. Use Sign in.";
+    const newProfile: DemoProfile = {
+      ...input,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+    setProfiles((prev) => [...prev, newProfile]);
+    setSession(newProfile.id);
+    setEquipment((prev) =>
+      prev.map((e) =>
+        !initialEquipment.some((seed) => seed.id === e.id) && !e.ownerId
+          ? { ...e, ownerId: newProfile.id }
+          : e,
+      ),
+    );
+    return "";
   }
   return (
     <>
@@ -354,6 +297,20 @@ export default function App() {
             >
               Our community
             </PageLink>
+            <PageLink
+              className="mobile-nav-extra"
+              page="/account"
+              onNavigate={() => setMobileMenu(false)}
+            >
+              My account
+            </PageLink>
+            <PageLink
+              className="mobile-nav-extra"
+              page="/dashboard"
+              onNavigate={() => setMobileMenu(false)}
+            >
+              Owner dashboard
+            </PageLink>
           </nav>
           <div className="header-actions">
             <button
@@ -376,7 +333,7 @@ export default function App() {
             <button
               className="account-button"
               aria-label="Open your Farmigo account"
-              onClick={() => setDialog("account")}
+              onClick={() => navigate("/account")}
             >
               <UserRound size={18} />
             </button>
@@ -644,9 +601,47 @@ export default function App() {
             </section>
           </>
         )}
+        {page === "account" && (
+          <Account
+            profile={profile}
+            requests={requests}
+            savedEquipment={equipment.filter((e) => saved.includes(e.id))}
+            toggleSave={toggleSave}
+            onAuth={authenticate}
+            onSignOut={() => setSession(null)}
+            onCancel={(id) =>
+              setRequests((prev) =>
+                prev.map((r) =>
+                  r.id === id ? { ...r, status: "cancelled" } : r,
+                ),
+              )
+            }
+            onUpdate={(input) => {
+              if (
+                profiles.some(
+                  (p) =>
+                    p.id !== profile?.id &&
+                    p.email.toLowerCase() === input.email.toLowerCase(),
+                )
+              )
+                return "That email is already used by another local account.";
+              setProfiles((prev) =>
+                prev.map((p) =>
+                  p.id === profile?.id ? { ...p, ...input } : p,
+                ),
+              );
+              return "";
+            }}
+          />
+        )}
         {page === "dashboard" && (
           <Dashboard
-            equipment={equipment}
+            equipment={equipment.filter(
+              (e) =>
+                initialEquipment.some((seed) => seed.id === e.id) ||
+                !e.ownerId ||
+                e.ownerId === profile?.id,
+            )}
             requests={requests}
             onEdit={(e) => {
               setEditing(e);
@@ -701,8 +696,14 @@ export default function App() {
               saved={saved.includes(detailEquipment.id)}
               toggleSave={toggleSave}
               notify={setToast}
+              profile={profile}
               requests={requests}
-              onRequest={(request) => setRequests((prev) => [request, ...prev])}
+              onRequest={(request) =>
+                setRequests((prev) => [
+                  { ...request, requesterId: profile?.id },
+                  ...prev,
+                ])
+              }
             />
           ) : (
             <section className="empty-state page-width">
@@ -881,99 +882,6 @@ export default function App() {
               </button>
             </div>
           )}
-        </Modal>
-      )}
-      {dialog === "account" && (
-        <Modal
-          title="Your little corner of Farmigo"
-          close={() => setDialog(null)}
-        >
-          <div className="account-content">
-            <span className="account-big-avatar">
-              <UserRound size={32} />
-            </span>
-            <h3>Welcome, good neighbor.</h3>
-            <p>
-              This is your frontend preview. Your saved equipment and listings
-              stay on this browser, so you can pick up where you left off.
-            </p>
-            <PageLink
-              className="account-row"
-              page="/dashboard"
-              onNavigate={() => setDialog(null)}
-            >
-              <Tractor size={19} />
-              <span>Owner dashboard</span>
-              <ChevronRight size={17} />
-            </PageLink>
-            <button className="account-row" onClick={() => setDialog("saved")}>
-              <Heart size={19} />
-              <span>Saved equipment</span>
-              <b>{saved.length}</b>
-              <ChevronRight size={17} />
-            </button>
-            <button
-              className="account-row"
-              onClick={() => {
-                setDialog(null);
-                clearFilters();
-                setShowAll(true);
-                browse();
-              }}
-            >
-              <Tractor size={19} />
-              <span>Explore the marketplace</span>
-              <ChevronRight size={17} />
-            </button>
-            <button
-              className="button primary full"
-              onClick={() => setDialog("listing")}
-            >
-              <Plus size={17} />
-              Create a listing
-            </button>
-            {equipment.filter(
-              (e) => !initialEquipment.some((item) => item.id === e.id),
-            ).length > 0 && (
-              <div className="your-listings">
-                <h4>Your demo listings</h4>
-                {equipment
-                  .filter(
-                    (e) => !initialEquipment.some((item) => item.id === e.id),
-                  )
-                  .map((e) => (
-                    <div className="your-listing" key={e.id}>
-                      <span>{e.title}</span>
-                      <button
-                        className="button outline"
-                        onClick={() => {
-                          setEditing(e);
-                          setDialog("listing");
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="icon-button"
-                        aria-label={`Remove demo listing ${e.title}`}
-                        onClick={() => {
-                          setEquipment((prev) =>
-                            prev.filter((item) => item.id !== e.id),
-                          );
-                          setSaved((prev) => prev.filter((id) => id !== e.id));
-                          setToast("Demo listing removed from this browser.");
-                        }}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ))}
-              </div>
-            )}
-            <span className="form-note">
-              Accounts and messaging will arrive with the backend.
-            </span>
-          </div>
         </Modal>
       )}
       {dialog === "listing" && (
