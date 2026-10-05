@@ -78,3 +78,9 @@ When hosting the production build, configure the host to serve `index.html` for 
 ### Readability and verification for the second batch
 
 Shared styling increases secondary text contrast, uses 16px form inputs, readable paragraph spacing, larger card/specification text, larger touch targets, responsive single-column mobile layouts, and contained scrolling for wide comparison/performance tables. A skip link, reduced-motion behavior, visible focus states, and semantic table headings support keyboard navigation. The README describes production boundaries for each feature. Run `npm run build` and `npm test`; browser checks verify comparison, date prefill, city pins, saved searches, compatibility, rental stages, wanted posts, insights, and desktop/mobile layouts. Layout checks cover 360px, 390px, 768px, 1024px and the default desktop viewport. Rental dates expand on demand so the initial search stays compact.
+
+### Responsive spacing
+
+The search form uses explicit grid columns: one aligned row on desktop, two rows on tablets, and stacked fields with a full-width action on phones. Optional rental dates expand into their own section, with keyboard order following the fields before the search action. Shared responsive gutters align the header and page content. Marketplace tools use consistent gaps, compact saved-search padding, and a grouped view/count/sort toolbar; empty filter chips consume no space.
+
+Browser viewport checks cover 320–1440px, including both sides of the 700px and 1100px search breakpoints. Main pages are checked at 390px, 768px, and 1280px for page-level horizontal overflow. Expanded date controls, saved searches, and the mobile filter dialog are also checked. These checks use emulated viewport sizes rather than physical devices.

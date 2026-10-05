@@ -4,6 +4,7 @@ import {
   ArrowRight,
   ArrowUpRight,
   BadgeCheck,
+  CalendarDays,
   CheckCircle2,
   ChevronDown,
   Handshake,
@@ -644,7 +645,7 @@ export default function App() {
                 </span>
               </div>
               <form
-                className="search-bar"
+                className={`search-bar search-bar-${mode}`}
                 onSubmit={(ev) => {
                   ev.preventDefault();
                   if (
@@ -698,44 +699,56 @@ export default function App() {
                   </span>
                 </label>
                 {mode === "rent" && (
-                  <details
-                    className="rental-date-options"
-                    open={dateOptions}
-                    onToggle={(ev) => setDateOptions(ev.currentTarget.open)}
+                  <button
+                    type="button"
+                    className="rental-date-toggle"
+                    aria-expanded={dateOptions}
+                    aria-controls="rental-search-dates"
+                    onClick={() => setDateOptions(!dateOptions)}
                   >
-                    <summary>Rental dates (optional)</summary>
-                    <div className="search-dates">
-                      <label>
-                        Rental start
-                        <input
-                          aria-label="Rental start"
-                          type="date"
-                          min={localDate()}
-                          value={draftDates.start}
-                          onInput={(ev) => {
-                            const value = ev.currentTarget.value;
-                            setDraftDates((prev) => ({
-                              ...prev,
-                              start: value,
-                            }));
-                          }}
-                        />
-                      </label>
-                      <label>
-                        Rental end
-                        <input
-                          aria-label="Rental end"
-                          type="date"
-                          min={draftDates.start || localDate()}
-                          value={draftDates.end}
-                          onInput={(ev) => {
-                            const value = ev.currentTarget.value;
-                            setDraftDates((prev) => ({ ...prev, end: value }));
-                          }}
-                        />
-                      </label>
-                    </div>
-                  </details>
+                    <CalendarDays size={18} />
+                    <span>
+                      Rental dates <small>(optional)</small>
+                    </span>
+                    <ChevronDown size={16} />
+                  </button>
+                )}
+                {mode === "rent" && (
+                  <div
+                    className="search-dates"
+                    id="rental-search-dates"
+                    hidden={!dateOptions}
+                  >
+                    <label>
+                      Rental start
+                      <input
+                        aria-label="Rental start"
+                        type="date"
+                        min={localDate()}
+                        value={draftDates.start}
+                        onInput={(ev) => {
+                          const value = ev.currentTarget.value;
+                          setDraftDates((prev) => ({
+                            ...prev,
+                            start: value,
+                          }));
+                        }}
+                      />
+                    </label>
+                    <label>
+                      Rental end
+                      <input
+                        aria-label="Rental end"
+                        type="date"
+                        min={draftDates.start || localDate()}
+                        value={draftDates.end}
+                        onInput={(ev) => {
+                          const value = ev.currentTarget.value;
+                          setDraftDates((prev) => ({ ...prev, end: value }));
+                        }}
+                      />
+                    </label>
+                  </div>
                 )}
                 <button className="button primary search-button" type="submit">
                   <Search size={17} />
@@ -924,25 +937,25 @@ export default function App() {
                   Filters{activeFilters > 0 && <b>{activeFilters}</b>}
                 </button>
               </div>
-              <div
-                className="view-switch"
-                role="group"
-                aria-label="Equipment view"
-              >
-                <button
-                  aria-pressed={view === "list"}
-                  onClick={() => setView("list")}
-                >
-                  List view
-                </button>
-                <button
-                  aria-pressed={view === "map"}
-                  onClick={() => setView("map")}
-                >
-                  Map view
-                </button>
-              </div>
               <div className="results-toolbar">
+                <div
+                  className="view-switch"
+                  role="group"
+                  aria-label="Equipment view"
+                >
+                  <button
+                    aria-pressed={view === "list"}
+                    onClick={() => setView("list")}
+                  >
+                    List view
+                  </button>
+                  <button
+                    aria-pressed={view === "map"}
+                    onClick={() => setView("map")}
+                  >
+                    Map view
+                  </button>
+                </div>
                 <span>
                   {search.query ||
                   search.location ||
