@@ -28,6 +28,7 @@ import {
 import { initialEquipment, type Equipment } from "./data";
 import { PageLink, useRouter } from "./router";
 import { ComparePage, CompareTray } from "./components/Comparison";
+import RentalProgress from "./pages/RentalProgress";
 import SavedSearches from "./components/SavedSearches";
 import { type SearchFilters } from "./discovery";
 import EquipmentMap from "./components/EquipmentMap";
@@ -253,6 +254,7 @@ export default function App() {
   const ownerListings = equipmentWithReviews.filter(
     (e) => ownerKey(e) === ownerId,
   );
+  const rental = requests.find(r=>`/rentals/${r.id}`===path.split("?")[0] && r.kind === "rent" && (r.sample || r.requesterId === profile?.id || equipment.some(e=>e.id===r.equipmentId && !initialEquipment.some(seed=>seed.id===e.id) && (!e.ownerId || e.ownerId === profile?.id))));
   const detailEquipment = equipmentWithReviews.find(
     (e) => `/equipment/${encodeURIComponent(e.id)}` === path.split("?")[0],
   );
@@ -795,6 +797,7 @@ export default function App() {
             </section>
           </>
         )}
+        {page === "rental" && (rental?<RentalProgress request={rental} equipment={equipment.find(e=>e.id===rental.equipmentId)} onUpdate={entry=>setRequests(prev=>prev.map(r=>r.id===entry.id?entry:r))}/>:<section className="empty-state page-width"><h1>Rental not found.</h1><p>Open your local demo account to view its requests.</p><PageLink className="button primary" page="/account">My account</PageLink></section>)}
         {page === "saved-searches" && <SavedSearches key={profile?.id || "guest"} scope={profile?.id || "guest"} filters={appliedFilters} equipment={equipment} requests={requests} onApply={applySearch}/>}
         {page === "compare" && <ComparePage equipment={equipmentWithReviews} />}
         {page === "owner" &&

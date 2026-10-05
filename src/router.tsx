@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 export type Page =
+  | "rental"
   | "saved-searches"
   | "compare"
   | "marketplace"
@@ -26,6 +27,7 @@ const paths: Record<Destination, string> = {
   community: "/community",
 };
 const titles: Record<Page, string> = {
+  rental: "Rental progress — Farmigo",
   "saved-searches": "Saved searches — Farmigo",
   compare: "Compare equipment — Farmigo",
   marketplace: "Farmigo — Find your next workhorse.",
@@ -43,6 +45,7 @@ function currentPath() {
 }
 function getPage(path: string): Page {
   const pathname = path.split("?")[0].replace(/\/+$/, "") || "/";
+  if (/^\/rentals\/[^/]+$/.test(pathname)) return "rental";
   if (/^\/owners\/[^/]+$/.test(pathname)) return "owner";
   if (pathname === "/saved-searches") return "saved-searches";
   if (pathname === "/compare") return "compare";

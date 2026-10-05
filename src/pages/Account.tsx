@@ -364,8 +364,9 @@ export default function Account({
                 </p>
               </div>
               <div>
+                {r.kind === "rent" && <PageLink className="button outline" page={`/rentals/${r.id}`}>View rental progress</PageLink>}
                 <span className={`status-chip ${r.status}`}>{r.status}</span>
-                {["pending", "accepted"].includes(r.status) && (
+                {["pending", "accepted"].includes(r.status) && !["in-use","returned"].includes(r.stage || "") && (
                   <button
                     className="button outline"
                     onClick={() => onCancel(r.id)}

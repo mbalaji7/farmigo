@@ -9,7 +9,7 @@ import {
 import { type Equipment } from "../data";
 import { type DemoProfile } from "../accountTypes";
 import { type EquipmentRequest } from "../marketplaceTypes";
-import { useRouter } from "../router";
+import { PageLink, useRouter } from "../router";
 import { currency, localDate } from "../utils";
 import {
   blockedFor,
@@ -168,6 +168,7 @@ export default function BookingPanel({
           Your local demo request is pending. The owner dashboard can accept or
           decline it. No payment or message has been sent.
         </p>
+        {submitted.kind === "rent" && <PageLink className="button outline full" page={`/rentals/${submitted.id}`}>View rental progress</PageLink>}
         <button className="button primary full" onClick={close}>
           Keep exploring
           <ArrowRight size={17} />

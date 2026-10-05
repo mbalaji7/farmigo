@@ -276,6 +276,7 @@ export default function Dashboard({
                   {r.message && <blockquote>{r.message}</blockquote>}
                 </div>
                 <div>
+                  {r.kind === "rent" && <PageLink className="button outline" page={`/rentals/${r.id}`}>View rental progress</PageLink>}
                   <span className={`status-chip ${r.status}`}>{r.status}</span>
                   {r.status === "pending" && (
                     <div className="request-actions">
