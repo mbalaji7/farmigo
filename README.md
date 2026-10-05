@@ -38,7 +38,7 @@ When hosting the production build, configure the host to serve `index.html` for 
 
 1. **Equipment pages — implemented:** shareable URLs, galleries with keyboard controls and image fallbacks, specifications, pickup information, save/share actions, and rent/buy modes.
 
-2. **Listing creation and editing — implemented:** drag-and-drop photo uploads (up to six JPG/PNG/WebP photos, 10 MB each), resized browser-local IndexedDB image storage, cover selection, explicit draft saving/restoration, category-specific specs, and editing through your account.
+2. **Listing creation and editing — implemented:** drag-and-drop photo uploads (one to six JPG/PNG/WebP photos, at least 800 × 600 px and 10 MB each), resized browser-local IndexedDB image storage, cover selection, explicit draft saving/restoration, category-specific specs, and editing through your account. New rental listings start with sensible local-demo defaults: Tractors, Good condition, delivery enabled, and a $75 delivery fee; location and pricing require owner input.
 
 3. **Owner dashboard — implemented:** `/dashboard` manages locally created listings, edit/pricing actions, active/paused/sold states, blocked availability dates, rental requests and purchase inquiries, and local accept/decline actions. A labeled sample-request button lets you try the workflow.
 

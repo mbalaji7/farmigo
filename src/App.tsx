@@ -1442,6 +1442,10 @@ export default function App() {
           <span>
             © {new Date().getFullYear()} Farmigo. Made for the way you farm.
           </span>
+          <span className="footer-credit">
+            Made with <Heart size={13} fill="currentColor" aria-hidden="true" />{" "}
+            by Balaji and Kamatchi
+          </span>
           <span>
             Frontend preview · Sample listings · Images for illustration
           </span>

@@ -1,4 +1,8 @@
 const prefix = "farmigo-photo:";
+const allowedPhotoTypes = ["image/jpeg", "image/png", "image/webp"];
+const maximumPhotoBytes = 10 * 1024 * 1024;
+const minimumPhotoLongSide = 800;
+const minimumPhotoShortSide = 600;
 function database(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open("farmigo-photos", 1);
@@ -8,9 +12,9 @@ function database(): Promise<IDBDatabase> {
   });
 }
 export async function savePhoto(file: File): Promise<string> {
-  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type))
+  if (!allowedPhotoTypes.includes(file.type))
     throw new Error("Use JPG, PNG, or WebP photos.");
-  if (file.size > 10 * 1024 * 1024)
+  if (file.size > maximumPhotoBytes)
     throw new Error("Each photo must be smaller than 10 MB.");
   const source = URL.createObjectURL(file);
   const image = new Image();
@@ -21,6 +25,14 @@ export async function savePhoto(file: File): Promise<string> {
         reject(new Error("This image could not be opened."));
       image.src = source;
     });
+    if (
+      Math.max(image.width, image.height) < minimumPhotoLongSide ||
+      Math.min(image.width, image.height) < minimumPhotoShortSide
+    ) {
+      throw new Error(
+        "Use photos at least 800 × 600 pixels so the equipment stays clear.",
+      );
+    }
     const ratio = Math.min(1, 1600 / Math.max(image.width, image.height));
     const canvas = document.createElement("canvas");
     canvas.width = Math.max(1, Math.round(image.width * ratio));

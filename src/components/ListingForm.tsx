@@ -53,8 +53,8 @@ const blank: Draft = {
   transportWeight: "",
   title: "",
   category: "Tractors",
-  condition: "Excellent",
-  kind: "both",
+  condition: "Good",
+  kind: "rent",
   year: new Date().getFullYear(),
   hours: 0,
   horsepower: 0,
@@ -161,6 +161,10 @@ export default function ListingForm({
   function submit(event: FormEvent) {
     event.preventDefault();
     if (uploading) return;
+    if (!draft.photos.length) {
+      setError("Add at least one equipment photo before publishing.");
+      return;
+    }
     const fallback =
       draft.category === "Harvesters"
         ? images.harvester
@@ -281,7 +285,8 @@ export default function ListingForm({
             {uploading ? "Saving photos…" : "Choose photos"}
           </button>
           <span>
-            JPG, PNG, or WebP · Up to 10 MB each · Stored in this browser
+            Add 1–6 JPG, PNG, or WebP photos · At least 800 × 600 px · Up to 10
+            MB each
           </span>
           <input
             ref={fileInput}
@@ -542,8 +547,7 @@ export default function ListingForm({
         </button>
       </div>
       <p className="form-note">
-        No photos? We’ll add a category illustration. Uploaded photos remain on
-        this device.
+        The first photo is the cover. Uploaded photos remain on this device.
       </p>
     </form>
   );
