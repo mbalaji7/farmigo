@@ -11,6 +11,7 @@ import {
   Leaf,
   MapPin,
   Menu,
+  MessageCircle,
   Plus,
   Search,
   SlidersHorizontal,
@@ -35,6 +36,8 @@ import { blockedFor, isRangeAvailable } from "./booking";
 import { type EquipmentRequest } from "./marketplaceTypes";
 import ListingForm from "./components/ListingForm";
 import EquipmentCard from "./components/EquipmentCard";
+import Messages from "./pages/Messages";
+import { type Conversation } from "./messageTypes";
 import Account from "./pages/Account";
 import { type DemoProfile, type ProfileInput } from "./accountTypes";
 
@@ -60,6 +63,8 @@ function readStorage<T>(key: string, fallback: T): T {
 
 export default function App() {
   const { page, path, navigate } = useRouter();
+  const [conversations, setConversations, messageStorageError] =
+    usePersistentState<Conversation[]>("farmigo-conversations", []);
   const [profiles, setProfiles] = usePersistentState<DemoProfile[]>(
     "farmigo-profiles",
     [],
@@ -220,6 +225,36 @@ export default function App() {
     setToast("Listing saved on this browser.");
     navigate(`/equipment/${entry.id}?mode=${entry.rent > 0 ? "rent" : "buy"}`);
   }
+  function startConversation(e: Equipment, sample = false) {
+    const found = conversations.find(
+      (c) => c.equipmentId === e.id && c.participantId === profile?.id,
+    );
+    if (found) {
+      navigate(`/messages?thread=${found.id}`);
+      return;
+    }
+    const conversation: Conversation = {
+      id: crypto.randomUUID(),
+      equipmentId: e.id,
+      equipmentTitle: e.title,
+      owner: e.owner,
+      participantId: profile?.id,
+      unread: sample ? 1 : 0,
+      createdAt: new Date().toISOString(),
+      messages: sample
+        ? [
+            {
+              id: crypto.randomUUID(),
+              sender: "owner",
+              body: "Sample reply: Happy to help. What kind of job are you planning?",
+              createdAt: new Date().toISOString(),
+            },
+          ]
+        : [],
+    };
+    setConversations((prev) => [conversation, ...prev]);
+    navigate(`/messages?thread=${conversation.id}`);
+  }
   function authenticate(input: ProfileInput, kind: "signup" | "signin") {
     const found = profiles.find(
       (p) => p.email.toLowerCase() === input.email.toLowerCase(),
@@ -311,6 +346,13 @@ export default function App() {
             >
               Owner dashboard
             </PageLink>
+            <PageLink
+              className="mobile-nav-extra"
+              page="/messages"
+              onNavigate={() => setMobileMenu(false)}
+            >
+              Messages
+            </PageLink>
           </nav>
           <div className="header-actions">
             <button
@@ -330,6 +372,13 @@ export default function App() {
               <Plus size={17} />
               List equipment
             </button>
+            <PageLink
+              className="account-button"
+              page="/messages"
+              aria-label="Open messages"
+            >
+              <MessageCircle size={18} />
+            </PageLink>
             <button
               className="account-button"
               aria-label="Open your Farmigo account"
@@ -601,6 +650,61 @@ export default function App() {
             </section>
           </>
         )}
+        {page === "messages" && (
+          <Messages
+            conversations={conversations.filter(
+              (c) => c.participantId === profile?.id,
+            )}
+            onSample={() => startConversation(initialEquipment[0], true)}
+            onRead={(id) =>
+              setConversations((prev) =>
+                prev.map((c) =>
+                  c.id === id && c.unread ? { ...c, unread: 0 } : c,
+                ),
+              )
+            }
+            onSend={(id, body) =>
+              setConversations((prev) =>
+                prev.map((c) =>
+                  c.id === id
+                    ? {
+                        ...c,
+                        messages: [
+                          ...c.messages,
+                          {
+                            id: crypto.randomUUID(),
+                            sender: "you",
+                            body,
+                            createdAt: new Date().toISOString(),
+                          },
+                        ],
+                      }
+                    : c,
+                ),
+              )
+            }
+            onReply={(id) =>
+              setConversations((prev) =>
+                prev.map((c) =>
+                  c.id === id
+                    ? {
+                        ...c,
+                        messages: [
+                          ...c.messages,
+                          {
+                            id: crypto.randomUUID(),
+                            sender: "owner",
+                            body: "Demo owner reply: Thanks for reaching out. Please confirm your dates and pickup requirements so we can work out the details.",
+                            createdAt: new Date().toISOString(),
+                          },
+                        ],
+                      }
+                    : c,
+                ),
+              )
+            }
+          />
+        )}
         {page === "account" && (
           <Account
             profile={profile}
@@ -696,6 +800,7 @@ export default function App() {
               saved={saved.includes(detailEquipment.id)}
               toggleSave={toggleSave}
               notify={setToast}
+              onMessage={() => startConversation(detailEquipment)}
               profile={profile}
               requests={requests}
               onRequest={(request) =>
@@ -765,6 +870,11 @@ export default function App() {
           </span>
         </div>
       </footer>
+      {messageStorageError && (
+        <p className="storage-warning" role="alert">
+          {messageStorageError}
+        </p>
+      )}
       {requestStorageError && (
         <p className="storage-warning" role="alert">
           {requestStorageError}

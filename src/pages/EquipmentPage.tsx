@@ -5,6 +5,7 @@ import {
   Heart,
   MapPin,
   Share2,
+  MessageCircle,
   Star,
   Check,
   Truck,
@@ -21,6 +22,7 @@ export default function EquipmentPage({
   saved,
   toggleSave,
   notify,
+  onMessage,
   profile,
   requests,
   onRequest,
@@ -29,6 +31,7 @@ export default function EquipmentPage({
   saved: boolean;
   toggleSave: (id: string) => void;
   notify: (text: string) => void;
+  onMessage: () => void;
   profile: DemoProfile | null;
   requests: EquipmentRequest[];
   onRequest: (request: EquipmentRequest) => void;
@@ -154,6 +157,10 @@ export default function EquipmentPage({
                 </span>
               </div>
             </div>
+            <button className="button outline" onClick={onMessage}>
+              <MessageCircle size={16} />
+              Message owner
+            </button>
             <div className="equipment-care">
               <Tractor size={20} />
               <p>

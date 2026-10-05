@@ -384,6 +384,9 @@ export default function Account({
           <PageLink className="button primary" page="marketplace">
             Find equipment
           </PageLink>
+          <PageLink className="button outline" page="/messages">
+            Your inbox
+          </PageLink>
         </div>
       )}
     </section>
