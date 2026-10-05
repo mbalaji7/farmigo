@@ -28,6 +28,7 @@ import {
 import { initialEquipment, type Equipment } from "./data";
 import { PageLink, useRouter } from "./router";
 import { ComparePage, CompareTray } from "./components/Comparison";
+import EquipmentMap from "./components/EquipmentMap";
 import HowItWorks from "./pages/HowItWorks";
 import Community from "./pages/Community";
 import Modal from "./components/Modal";
@@ -150,6 +151,7 @@ export default function App() {
     EquipmentRequest[]
   >("farmigo-requests", []);
   const [editing, setEditing] = useState<Equipment | undefined>();
+  const [view, setView] = useState<"list" | "map">("list");
   const [showAll, setShowAll] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [toast, setToast] = useState("");
@@ -697,6 +699,7 @@ export default function App() {
                   Filters{activeFilters > 0 && <b>{activeFilters}</b>}
                 </button>
               </div>
+              <div className="view-switch" role="group" aria-label="Equipment view"><button aria-pressed={view === "list"} onClick={()=>setView("list")}>List view</button><button aria-pressed={view === "map"} onClick={()=>setView("map")}>Map view</button></div>
               <div className="results-toolbar">
                 <span>
                   {search.query ||
@@ -730,7 +733,7 @@ export default function App() {
                   <ChevronDown size={13} />
                 </label>
               </div>
-              {visible.length ? (
+              {view === "map" && filtered.length ? <EquipmentMap equipment={filtered} mode={mode} saved={saved} toggleSave={toggleSave} open={openEquipment}/> : visible.length ? (
                 <div
                   className="equipment-grid"
                   key={`${mode}-${category}-${search.query}-${search.location}-${condition}-${maxPrice}-${sort}`}
@@ -765,7 +768,7 @@ export default function App() {
                   </button>
                 </div>
               )}
-              {!showAll && filtered.length > 4 && (
+              {view === "list" && !showAll && filtered.length > 4 && (
                 <div className="more-equipment">
                   <button
                     className="button outline"
