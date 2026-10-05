@@ -1,0 +1,29 @@
+/* Shared readability and responsive behavior for the marketplace workflows. */
+:root { --muted:#556252; --line:#d9ded3; }
+body {font-size:16px;line-height:1.6; padding-bottom: env(safe-area-inset-bottom);}
+input,select,textarea {font-size:16px!important;line-height:1.5;}
+input::placeholder,textarea::placeholder{color:#65705f;opacity:1;}
+.button {min-height:44px;font-size:15px;line-height:1.4;white-space:normal;}
+.text-link,.category-tab,.mode-tabs button,.workspace-tabs button {min-height:44px;font-size:15px;}
+.icon-button,.save-button,.card-arrow,.account-button {min-width:44px;min-height:44px;}
+:where(.card-location,.card-specs,.card-owner,.card-category,.photo-tag,.listing-badge,.form-note,.photo-disclaimer,.search-foot,.search-hint,.results-toolbar,.sort-control,.status-chip,.detail-page-heading p,.workspace-heading p,.modal-intro,.modal-form label,.eyebrow,.breadcrumb,.request-card p,.owner-info-grid p,.owner-info-grid span,.message-bubble span,.message-demo-note,.footer-bottom){font-size:14px;line-height:1.6;}
+.card-title {font-size:19px;line-height:1.4;min-height:44px;text-align:left;}
+.card-specs span {font-size:13px;color:#455443;background:#edf0e7;padding:5px 9px;}
+.card-location,.card-owner,.card-category,.search-foot,.search-hint,.results-toolbar,.sort-control,.form-note,.photo-disclaimer,.footer-bottom {color:#52614e;}
+.card-body {padding:20px;}
+.card-price {font-size:25px;}.card-price span {font-size:15px;color:#52614e;}
+.section-heading p,.workspace-heading p,.detail-section p {font-size:16px;line-height:1.7;max-width:70ch;}
+.modal-form label {font-size:15px;color:#334731;}
+.page-width {max-width:1240px;}
+.action-row {display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+.readable-note {color:#52614e;font-size:15px;line-height:1.7;max-width:75ch;margin:16px 0;}
+.compare-toggle {display:flex;align-items:center;gap:8px;min-height:44px;font-size:14px;color:#28533d;padding:0;margin-bottom:8px;}
+.compare-toggle[aria-pressed=true]{font-weight:700;}
+.compare-tray {position:sticky;bottom:0;z-index:25;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px max(24px,calc((100% - 1240px)/2));background:#f3f5ec;border-top:2px solid #28533d;box-shadow:0 -6px 22px #203d2c14;}
+.compare-chips {display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}.compare-chips button {display:flex;align-items:center;gap:8px;border:1px solid #b7c4ad;border-radius:8px;padding:6px 10px;min-height:44px;font-size:14px;}
+.comparison-scroll {max-width:100%;overflow:auto;border:1px solid var(--line);border-radius:16px;margin-bottom:30px;}
+.comparison-table {width:100%;border-collapse:collapse;text-align:left;}.comparison-table th,.comparison-table td {min-width:200px;padding:18px;border-bottom:1px solid var(--line);vertical-align:top;}
+.comparison-table th {background:#f0f3e9;}.comparison-table tbody tr:nth-child(even) td {background:#f8f9f4;}.comparison-table img {width:100%;height:145px;object-fit:cover;border-radius:8px;margin-bottom:12px;}.comparison-table a {display:block;font-size:18px;}.comparison-table .text-link {display:block;}
+@media(max-width:900px){.header-inner{gap:20px}.main-nav{gap:20px}.equipment-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.page-width{width:calc(100% - 32px)}.card-title{font-size:20px}.card-body{padding:20px}.compare-tray{flex-direction:column;align-items:stretch;padding:14px 16px}.compare-chips{display:none}.compare-tray .action-row{justify-content:space-between}.workspace-heading h1,.detail-page-heading h1{font-size:clamp(27px,7vw,36px);line-height:1.2}.workspace-heading{align-items:flex-start;gap:16px}.workspace-tabs{overflow-x:auto}.workspace-tabs button{flex-shrink:0}.modal-form,.profile-form{min-width:0}.search-foot{flex-wrap:wrap}.equipment-grid{grid-template-columns:1fr}.results-toolbar{flex-wrap:wrap;gap:12px}.equipment-detail-page{padding-bottom:20px} }
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.01ms!important;}}

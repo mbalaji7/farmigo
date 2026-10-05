@@ -63,3 +63,7 @@ When hosting the production build, configure the host to serve `index.html` for 
 - Validate rates, availability, transport charges, ownership, and review eligibility on the server before accepting bookings or collecting payment.
 - Replace demo city-center distance estimates with verified locations/geocoding and implement an actual verification process.
 - Configure the production host to serve `index.html` for all frontend routes.
+
+## Second priority feature batch
+
+1. **Equipment comparison:** persist up to three selections, compare rental/purchase prices, specifications, attachments and transport side by side at `/compare`, and remove/clear selections. Mobile tables scroll within their own region. Shared readability improvements increase supporting text contrast, form text size, control targets, card spacing, and mobile typography.

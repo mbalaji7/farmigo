@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { initialEquipment, type Equipment } from "./data";
 import { PageLink, useRouter } from "./router";
+import { ComparePage, CompareTray } from "./components/Comparison";
 import HowItWorks from "./pages/HowItWorks";
 import Community from "./pages/Community";
 import Modal from "./components/Modal";
@@ -761,6 +762,7 @@ export default function App() {
             </section>
           </>
         )}
+        {page === "compare" && <ComparePage equipment={equipmentWithReviews} />}
         {page === "owner" &&
           (ownerListings.length || publicProfile ? (
             <OwnerProfile
@@ -1238,6 +1240,7 @@ export default function App() {
           )}
         </Modal>
       )}
+      <CompareTray equipment={equipmentWithReviews} />
       {dialog === "listing" && (
         <Modal
           title={

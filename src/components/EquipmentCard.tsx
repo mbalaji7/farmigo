@@ -3,6 +3,7 @@ import { type Equipment } from "../data";
 import { currency } from "../utils";
 import { PageLink } from "../router";
 import { ownerPath } from "../ownerData";
+import { CompareToggle } from "./Comparison";
 import { Photo } from "./PhotoGallery";
 export default function EquipmentCard({
   equipment: e,
@@ -58,6 +59,7 @@ export default function EquipmentCard({
         )}
       </div>
       <div className="card-body">
+        <CompareToggle equipment={e} />
         <div className="card-category">
           {e.category}
           <span>
