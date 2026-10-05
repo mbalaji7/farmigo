@@ -39,6 +39,12 @@ export type Equipment = {
   deliveryAvailable?: boolean;
   attachments?: string;
   pickupNotes?: string;
+  minimumTractorHp?: number;
+  pto?: string;
+  hitch?: string;
+  hydraulics?: string;
+  transportDimensions?: string;
+  transportWeight?: string;
 };
 export const images = {
   tractor:

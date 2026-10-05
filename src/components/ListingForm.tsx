@@ -12,6 +12,12 @@ const categories: Category[] = [
   "Irrigation",
 ];
 type Draft = {
+  minimumTractorHp: string;
+  pto: string;
+  hitch: string;
+  hydraulics: string;
+  transportDimensions: string;
+  transportWeight: string;
   title: string;
   category: Category;
   condition: Equipment["condition"];
@@ -39,6 +45,12 @@ type Draft = {
   deliveryAvailable: boolean;
 };
 const blank: Draft = {
+  minimumTractorHp: "",
+  pto: "",
+  hitch: "",
+  hydraulics: "",
+  transportDimensions: "",
+  transportWeight: "",
   title: "",
   category: "Tractors",
   condition: "Excellent",
@@ -79,6 +91,12 @@ function starting(e?: Equipment): Draft {
       workingWidth: e.workingWidth || "",
       capacity: e.capacity || "",
       brand: e.brand || "",
+      minimumTractorHp: String(e.minimumTractorHp || ""),
+      pto: e.pto || "",
+      hitch: e.hitch || "",
+      hydraulics: e.hydraulics || "",
+      transportDimensions: e.transportDimensions || "",
+      transportWeight: e.transportWeight || "",
       weeklyRent: String(e.weeklyRent || ""),
       monthlyRent: String(e.monthlyRent || ""),
       deposit: String(e.deposit || ""),
@@ -161,6 +179,7 @@ export default function ListingForm({
       owner: draft.owner.trim(),
       city: draft.city.trim(),
       state: draft.state.toUpperCase(),
+      minimumTractorHp: Number(draft.minimumTractorHp) || undefined,
       rent: draft.kind === "buy" ? 0 : Number(draft.rent),
       price: draft.kind === "rent" ? 0 : Number(draft.price),
       photos: draft.photos,
@@ -200,7 +219,8 @@ export default function ListingForm({
       | "pickupNotes"
       | "workingWidth"
       | "capacity"
-      | "brand",
+      | "brand"
+      | "pto" | "hitch" | "hydraulics" | "transportDimensions" | "transportWeight" | "minimumTractorHp",
     label: string,
     options: {
       required?: boolean;
@@ -460,6 +480,13 @@ export default function ListingForm({
             </label>
           </>
         )}
+        <div className="span-two form-section-heading"><h3>Connections & transport</h3><p>Optional details. Leave unknown requirements blank so neighbors know to ask.</p></div>
+        {text("minimumTractorHp", "Minimum tractor horsepower (optional)", {type:"number"})}
+        {text("pto", "PTO connection", {maxLength:80,placeholder:"e.g. 540 rpm, 6 spline"})}
+        {text("hitch", "Hitch connection", {maxLength:80,placeholder:"e.g. Category II"})}
+        {text("hydraulics", "Hydraulic requirements", {maxLength:200})}
+        {text("transportDimensions", "Transport dimensions (include units)", {maxLength:120})}
+        {text("transportWeight", "Transport weight (include units)", {maxLength:80})}
         {text("attachments", "Included attachments", {
           maxLength: 200,
           placeholder: "List what is included",

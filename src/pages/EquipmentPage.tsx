@@ -17,6 +17,7 @@ import { PageLink, useRouter } from "../router";
 import { ownerPath } from "../ownerData";
 import { type DemoProfile } from "../accountTypes";
 import { type EquipmentRequest } from "../marketplaceTypes";
+import Compatibility from "../components/Compatibility";
 import PhotoGallery from "../components/PhotoGallery";
 import BookingPanel from "../components/BookingPanel";
 export default function EquipmentPage({
@@ -134,6 +135,7 @@ export default function EquipmentPage({
                 <dd>{e.attachments || "Confirm with the owner"}</dd>
               </div>
             </dl>
+            <Compatibility equipment={e}/>
             <h2>Pickup & transport.</h2>
             <div className="transport-card">
               <Truck size={23} />
