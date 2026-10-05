@@ -4679,3 +4679,34 @@ h1 {
     gap: 8px;
   }
 }
+.advanced-filter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 17px;
+}
+.filter-hint {
+  font-size: 11px;
+  line-height: 1.85;
+  color: #839374;
+  margin: 0 0 17px;
+}
+.share-search {
+  font-size: 10px;
+  margin: -6px 0 15px;
+  gap: 6px;
+}
+.card-location > span {
+  white-space: nowrap;
+}
+@media (max-width: 700px) {
+  .advanced-filter-grid {
+    grid-template-columns: 1fr;
+  }
+  .card-location {
+    flex-wrap: wrap;
+  }
+  .share-search {
+    font-size: 10px;
+    margin-top: 0;
+  }
+}

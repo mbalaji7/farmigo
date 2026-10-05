@@ -5,12 +5,14 @@ import { Photo } from "./PhotoGallery";
 export default function EquipmentCard({
   equipment: e,
   mode,
+  distance,
   saved,
   toggleSave,
   open,
 }: {
   equipment: Equipment;
   mode: "rent" | "buy";
+  distance?: number;
   saved: boolean;
   toggleSave: (id: string) => void;
   open: (e: Equipment) => void;
@@ -66,6 +68,12 @@ export default function EquipmentCard({
         <p className="card-location">
           <MapPin size={13} />
           {e.city}, {e.state}
+          {distance !== undefined && (
+            <span title="Demo city-center distance">
+              {" "}
+              · {Math.round(distance)} mi
+            </span>
+          )}
         </p>
         <div className="card-specs">
           <span>{e.year}</span>

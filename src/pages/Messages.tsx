@@ -20,9 +20,14 @@ export default function Messages({
   const selected = conversations.find((c) => c.id === id);
   const [query, setQuery] = useState(""),
     [body, setBody] = useState("");
-  const read = useRef(onRead); read.current = onRead;
-  useEffect(() => { setBody(""); }, [selected?.id]);
-  useEffect(() => { if(selected?.unread)read.current(selected.id); }, [selected?.id,selected?.unread]);
+  const read = useRef(onRead);
+  read.current = onRead;
+  useEffect(() => {
+    setBody("");
+  }, [selected?.id]);
+  useEffect(() => {
+    if (selected?.unread) read.current(selected.id);
+  }, [selected?.id, selected?.unread]);
   function send(event: FormEvent) {
     event.preventDefault();
     if (selected && body.trim()) {

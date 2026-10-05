@@ -14,6 +14,7 @@ import {
   MessageCircle,
   Plus,
   Search,
+  Share2,
   SlidersHorizontal,
   Sprout,
   Tractor,
@@ -32,6 +33,15 @@ import Modal from "./components/Modal";
 import EquipmentPage from "./pages/EquipmentPage";
 import Dashboard from "./pages/Dashboard";
 import { usePersistentState } from "./usePersistentState";
+import {
+  readFilters,
+  filterQuery,
+  matchesEquipment,
+  emptyAdvanced,
+  brandOf,
+  distanceFrom,
+  type AdvancedFilters,
+} from "./discovery";
 import { blockedFor, isRangeAvailable } from "./booking";
 import { type EquipmentRequest } from "./marketplaceTypes";
 import ListingForm from "./components/ListingForm";
@@ -62,7 +72,8 @@ function readStorage<T>(key: string, fallback: T): T {
 }
 
 export default function App() {
-  const { page, path, navigate } = useRouter();
+  const { page, path, navigate, updateQuery } = useRouter();
+  const initialFilters = readFilters(window.location.search);
   const [conversations, setConversations, messageStorageError] =
     usePersistentState<Conversation[]>("farmigo-conversations", []);
   const [profiles, setProfiles] = usePersistentState<DemoProfile[]>(
@@ -99,14 +110,23 @@ export default function App() {
       ? stored.filter((id) => typeof id === "string")
       : [];
   });
-  const [mode, setMode] = useState<Mode>("rent");
-  const [category, setCategory] = useState("All equipment");
-  const [query, setQuery] = useState("");
-  const [location, setLocation] = useState("");
-  const [search, setSearch] = useState({ query: "", location: "" });
-  const [sort, setSort] = useState("recommended");
-  const [condition, setCondition] = useState("Any condition");
-  const [maxPrice, setMaxPrice] = useState("");
+  const [mode, setMode] = useState<Mode>(initialFilters.mode);
+  const [category, setCategory] = useState(initialFilters.category);
+  const [query, setQuery] = useState(initialFilters.query);
+  const [location, setLocation] = useState(initialFilters.location);
+  const [search, setSearch] = useState({
+    query: initialFilters.query,
+    location: initialFilters.location,
+  });
+  const [sort, setSort] = useState(initialFilters.sort);
+  const [condition, setCondition] = useState(initialFilters.condition);
+  const [maxPrice, setMaxPrice] = useState(initialFilters.maxPrice);
+  const [advanced, setAdvanced] = useState<AdvancedFilters>({
+    ...emptyAdvanced,
+    ...initialFilters,
+  });
+  const [draftAdvanced, setDraftAdvanced] = useState(advanced);
+  const [filterError, setFilterError] = useState("");
   const [draftCondition, setDraftCondition] = useState(condition);
   const [draftMaxPrice, setDraftMaxPrice] = useState(maxPrice);
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -148,6 +168,49 @@ export default function App() {
     const timer = window.setTimeout(() => setToast(""), 4500);
     return () => window.clearTimeout(timer);
   }, [toast]);
+  useEffect(() => {
+    if (page === "marketplace")
+      updateQuery(
+        filterQuery({
+          ...advanced,
+          mode,
+          category,
+          condition,
+          maxPrice,
+          sort,
+          query: search.query,
+          location: search.location,
+        }),
+      );
+  }, [
+    page,
+    mode,
+    category,
+    condition,
+    maxPrice,
+    sort,
+    search.query,
+    search.location,
+    advanced,
+  ]);
+  useEffect(() => {
+    const restore = () => {
+      if (window.location.pathname !== "/") return;
+      const f = readFilters(window.location.search);
+      setMode(f.mode);
+      setCategory(f.category);
+      setCondition(f.condition);
+      setMaxPrice(f.maxPrice);
+      setSort(f.sort);
+      setQuery(f.query);
+      setLocation(f.location);
+      setSearch({ query: f.query, location: f.location });
+      setAdvanced({ ...emptyAdvanced, ...f });
+      setShowAll(true);
+    };
+    window.addEventListener("popstate", restore);
+    return () => window.removeEventListener("popstate", restore);
+  }, []);
   const toggleSave = (id: string) => {
     setSaved((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
@@ -180,24 +243,26 @@ export default function App() {
     setCondition("Any condition");
     setMaxPrice("");
     setShowAll(false);
+    setAdvanced(emptyAdvanced);
   };
   const activeFilters =
-    (condition !== "Any condition" ? 1 : 0) + (maxPrice ? 1 : 0);
+    (condition !== "Any condition" ? 1 : 0) +
+    (maxPrice ? 1 : 0) +
+    Object.keys(emptyAdvanced).filter(
+      (key) => advanced[key as keyof AdvancedFilters],
+    ).length;
+  const appliedFilters = {
+    ...advanced,
+    mode,
+    category,
+    condition,
+    maxPrice,
+    sort,
+    query: search.query,
+    location: search.location,
+  };
   const filtered = equipment
-    .filter(
-      (e) =>
-        (!e.status || e.status === "active") &&
-        (mode === "rent" ? e.rent > 0 : e.price > 0) &&
-        (category === "All equipment" || e.category === category) &&
-        `${e.title} ${e.category} ${e.owner}`
-          .toLowerCase()
-          .includes(search.query.toLowerCase()) &&
-        `${e.city} ${e.state} ${e.zip}`
-          .toLowerCase()
-          .includes(search.location.toLowerCase()) &&
-        (condition === "Any condition" || e.condition === condition) &&
-        (!maxPrice || (mode === "rent" ? e.rent : e.price) <= Number(maxPrice)),
-    )
+    .filter((e) => matchesEquipment(e, appliedFilters))
     .sort((a, b) =>
       sort === "price-low"
         ? mode === "rent"
@@ -536,6 +601,22 @@ export default function App() {
                   <ArrowRight size={17} />
                 </button>
               </div>
+              <button
+                className="text-link share-search"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(window.location.href);
+                    setToast("Search link copied, including your filters.");
+                  } catch {
+                    setToast(
+                      "Copy the current browser address to share this search.",
+                    );
+                  }
+                }}
+              >
+                <Share2 size={14} />
+                Copy search link
+              </button>
               <div className="browse-toolbar">
                 <div
                   className="category-tabs"
@@ -563,6 +644,8 @@ export default function App() {
                 <button
                   className={`filter-button ${activeFilters ? "filter-active" : ""}`}
                   onClick={() => {
+                    setDraftAdvanced(advanced);
+                    setFilterError("");
                     setDraftCondition(condition);
                     setDraftMaxPrice(maxPrice);
                     setDialog("filters");
@@ -614,6 +697,7 @@ export default function App() {
                     <EquipmentCard
                       key={e.id}
                       equipment={e}
+                      distance={advanced.radius ? distanceFrom(e, search.location) ?? undefined : undefined}
                       mode={mode}
                       saved={saved.includes(e.id)}
                       toggleSave={toggleSave}
@@ -899,6 +983,21 @@ export default function App() {
             className="modal-form"
             onSubmit={(ev) => {
               ev.preventDefault();
+              if (
+                (draftAdvanced.minPower &&
+                  draftAdvanced.maxPower &&
+                  Number(draftAdvanced.minPower) >
+                    Number(draftAdvanced.maxPower)) ||
+                (draftAdvanced.minYear &&
+                  draftAdvanced.maxYear &&
+                  Number(draftAdvanced.minYear) > Number(draftAdvanced.maxYear))
+              ) {
+                setFilterError(
+                  "Minimum values must be smaller than maximum values.",
+                );
+                return;
+              }
+              setAdvanced(draftAdvanced);
               setCondition(draftCondition);
               setMaxPrice(draftMaxPrice);
               setShowAll(true);
@@ -931,11 +1030,91 @@ export default function App() {
                 onChange={(ev) => setDraftMaxPrice(ev.target.value)}
               />
             </label>
+            <label>
+              Equipment brand
+              <select
+                value={draftAdvanced.brand}
+                onChange={(ev) =>
+                  setDraftAdvanced((prev) => ({
+                    ...prev,
+                    brand: ev.target.value,
+                  }))
+                }
+              >
+                <option value="">Any brand</option>
+                {Array.from(new Set(equipment.map(brandOf)))
+                  .sort()
+                  .map((brand) => (
+                    <option key={brand}>{brand}</option>
+                  ))}
+              </select>
+            </label>
+            <div className="advanced-filter-grid">
+              {(
+                [
+                  ["minPower", "Minimum horsepower"],
+                  ["maxPower", "Maximum horsepower"],
+                  ["minYear", "Earliest year"],
+                  ["maxYear", "Latest year"],
+                  ["maxHours", "Maximum operating hours"],
+                ] as const
+              ).map(([key, label]) => (
+                <label key={key}>
+                  {label}
+                  <input
+                    type="number"
+                    min={key.includes("Year") ? 1950 : 0}
+                    max={
+                      key.includes("Year")
+                        ? new Date().getFullYear() + 1
+                        : undefined
+                    }
+                    value={draftAdvanced[key]}
+                    onChange={(ev) =>
+                      setDraftAdvanced((prev) => ({
+                        ...prev,
+                        [key]: ev.target.value,
+                      }))
+                    }
+                  />
+                </label>
+              ))}
+            </div>
+            <label>
+              Distance from search location
+              <select
+                value={draftAdvanced.radius}
+                onChange={(ev) =>
+                  setDraftAdvanced((prev) => ({
+                    ...prev,
+                    radius: ev.target.value,
+                  }))
+                }
+              >
+                <option value="">Any distance</option>
+                <option value="25">Within 25 miles</option>
+                <option value="50">Within 50 miles</option>
+                <option value="100">Within 100 miles</option>
+                <option value="250">Within 250 miles</option>
+              </select>
+            </label>
+            <p className="filter-hint">
+              Distances are demo estimates between Iowa city centers. Enter Des
+              Moines, Ames, Ankeny, Boone, Newton, Cedar Rapids, or a listed ZIP
+              code in the location search.
+            </p>
+            {filterError && (
+              <p className="inline-error" role="alert">
+                {filterError}
+              </p>
+            )}
             <div className="form-actions">
               <button
                 className="button outline"
                 type="button"
                 onClick={() => {
+                  setDraftAdvanced(emptyAdvanced);
+                  setFilterError("");
                   setDraftCondition("Any condition");
                   setDraftMaxPrice("");
                 }}

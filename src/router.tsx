@@ -53,6 +53,7 @@ const RouterContext = createContext<{
   page: Page;
   path: string;
   navigate: (target: RouteTarget) => void;
+  updateQuery: (query: string) => void;
 } | null>(null);
 export function RouterProvider({ children }: { children: ReactNode }) {
   const [path, setPath] = useState(currentPath);
@@ -73,7 +74,7 @@ export function RouterProvider({ children }: { children: ReactNode }) {
     document.title = titles[page];
     window.scrollTo({ top: 0, behavior: "instant" });
     document.querySelector<HTMLElement>("main")?.focus({ preventScroll: true });
-  }, [path, page]);
+  }, [path.split("?")[0], page]);
   function navigate(target: RouteTarget) {
     const next = href(target);
     if (currentPath() !== next || location.hash)
@@ -81,8 +82,14 @@ export function RouterProvider({ children }: { children: ReactNode }) {
     setPath(currentPath());
     window.scrollTo({ top: 0, behavior: "instant" });
   }
+  function updateQuery(query: string) {
+    const next = location.pathname + (query ? `?${query}` : "");
+    if (next === currentPath()) return;
+    history.replaceState(null, "", next);
+    setPath(currentPath());
+  }
   return (
-    <RouterContext.Provider value={{ page, path, navigate }}>
+    <RouterContext.Provider value={{ page, path, navigate, updateQuery }}>
       {children}
     </RouterContext.Provider>
   );
