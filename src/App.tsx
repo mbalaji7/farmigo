@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowDownUp,
   ArrowRight,
@@ -14,7 +14,6 @@ import {
   Menu,
   Plus,
   Search,
-  ShieldCheck,
   SlidersHorizontal,
   Sprout,
   Star,
@@ -27,18 +26,15 @@ import {
   Wrench,
   X,
 } from "lucide-react";
-import {
-  images,
-  initialEquipment,
-  type Category,
-  type Equipment,
-} from "./data";
+import { initialEquipment, type Equipment } from "./data";
 import { PageLink, useRouter } from "./router";
 import HowItWorks from "./pages/HowItWorks";
 import Community from "./pages/Community";
 import Modal from "./components/Modal";
 import EquipmentPage from "./pages/EquipmentPage";
 import { currency } from "./utils";
+import ListingForm from "./components/ListingForm";
+import { Photo } from "./components/PhotoGallery";
 
 type Mode = "rent" | "buy";
 type Dialog = "listing" | "saved" | "account" | "filters" | null;
@@ -89,7 +85,7 @@ function EquipmentCard({
           onClick={() => open(e)}
           aria-label={`View ${e.title}`}
         >
-          <img src={e.image} alt={`${e.title} on a farm`} loading="lazy" />
+          <Photo src={e.image} alt={`${e.title} on a farm`} loading="lazy" />
         </button>
         <span
           className={`listing-badge ${displayMode === "buy" ? "sale" : ""}`}
@@ -190,7 +186,7 @@ export default function App() {
   const [draftCondition, setDraftCondition] = useState(condition);
   const [draftMaxPrice, setDraftMaxPrice] = useState(maxPrice);
   const [dialog, setDialog] = useState<Dialog>(null);
-  const [listingKind, setListingKind] = useState("both");
+  const [editing, setEditing] = useState<Equipment | undefined>();
   const [showAll, setShowAll] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [toast, setToast] = useState("");
@@ -286,53 +282,19 @@ export default function App() {
           : 0,
     );
   const visible = showAll ? filtered : filtered.slice(0, 4);
-  function createListing(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const selectedCategory = data.get("category") as Category;
-    const entry: Equipment = {
-      id: crypto.randomUUID(),
-      title: String(data.get("title")).trim(),
-      category: selectedCategory,
-      city: String(data.get("city")).trim(),
-      state: String(data.get("state")).trim().toUpperCase(),
-      zip: String(data.get("zip")).trim(),
-      year: Number(data.get("year")),
-      hours: Number(data.get("hours")),
-      horsepower: Number(data.get("horsepower")),
-      rent: listingKind === "buy" ? 0 : Number(data.get("rent")),
-      price: listingKind === "rent" ? 0 : Number(data.get("price")),
-      image:
-        selectedCategory === "Harvesters"
-          ? images.harvester
-          : selectedCategory === "Hay & forage"
-            ? images.baler
-            : selectedCategory === "Planting"
-              ? images.planter
-              : selectedCategory === "Irrigation"
-                ? images.field
-                : images.tractor,
-      owner: String(data.get("owner")).trim(),
-      initials: String(data.get("owner"))
-        .trim()
-        .split(/\s+/)
-        .slice(0, 2)
-        .map((s) => s[0])
-        .join("")
-        .toUpperCase(),
-      rating: "New",
-      reviews: 0,
-      condition: data.get("condition") as Equipment["condition"],
-      description: String(data.get("description")).trim(),
-      tag: "Just listed",
-    };
-    setEquipment((prev) => [...prev, entry]);
-    setMode(listingKind === "buy" ? "buy" : "rent");
+  function saveListing(entry: Equipment) {
+    setEquipment((prev) =>
+      prev.some((e) => e.id === entry.id)
+        ? prev.map((e) => (e.id === entry.id ? entry : e))
+        : [...prev, entry],
+    );
+    setMode(entry.rent > 0 ? "rent" : "buy");
+    setEditing(undefined);
+    setDialog(null);
     clearFilters();
     setShowAll(true);
-    setDialog(null);
-    setToast("Your demo listing has been added. It’s saved on this browser.");
-    window.setTimeout(browse, 100);
+    setToast("Listing saved on this browser.");
+    navigate(`/equipment/${entry.id}?mode=${entry.rent > 0 ? "rent" : "buy"}`);
   }
   return (
     <>
@@ -421,7 +383,11 @@ export default function App() {
           </div>
         </div>
       </header>
-      <main key={page} className={`page-content ${page}-page`} tabIndex={-1}>
+      <main
+        key={path.split("?")[0]}
+        className={`page-content ${page}-page`}
+        tabIndex={-1}
+      >
         {page === "marketplace" && (
           <>
             <div className="marketplace-intro page-width">
@@ -905,6 +871,15 @@ export default function App() {
                     <div className="your-listing" key={e.id}>
                       <span>{e.title}</span>
                       <button
+                        className="button outline"
+                        onClick={() => {
+                          setEditing(e);
+                          setDialog("listing");
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
                         className="icon-button"
                         aria-label={`Remove demo listing ${e.title}`}
                         onClick={() => {
@@ -929,176 +904,21 @@ export default function App() {
       )}
       {dialog === "listing" && (
         <Modal
-          title="Put your equipment to work."
-          close={() => setDialog(null)}
+          title={
+            editing ? "Edit your equipment." : "Put your equipment to work."
+          }
+          close={() => {
+            setDialog(null);
+            setEditing(undefined);
+          }}
           wide
         >
-          <form className="modal-form listing-form" onSubmit={createListing}>
-            <p className="modal-intro">
-              A good tool deserves another good season. Create a demo listing
-              saved to this browser.
-            </p>
-            <div className="listing-form-grid">
-              <label className="span-two">
-                How would you like to list it?
-                <select
-                  name="listingKind"
-                  value={listingKind}
-                  onChange={(ev) => setListingKind(ev.target.value)}
-                >
-                  <option value="both">Available to rent and buy</option>
-                  <option value="rent">For rent only</option>
-                  <option value="buy">For sale only</option>
-                </select>
-              </label>
-              <label className="span-two">
-                Equipment name
-                <input
-                  name="title"
-                  required
-                  placeholder="e.g. John Deere 6M 220"
-                  maxLength={80}
-                  pattern=".*\S.*"
-                />
-              </label>
-              <label>
-                Category
-                <select name="category">
-                  {categories.slice(1).map((c) => (
-                    <option key={c.name}>{c.name}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Condition
-                <select name="condition">
-                  <option>Excellent</option>
-                  <option>Good</option>
-                </select>
-              </label>
-              <label>
-                Year
-                <input
-                  name="year"
-                  type="number"
-                  min="1950"
-                  max={new Date().getFullYear() + 1}
-                  defaultValue={2023}
-                  required
-                />
-              </label>
-              <label>
-                Operating hours
-                <input
-                  name="hours"
-                  type="number"
-                  min="0"
-                  defaultValue={0}
-                  required
-                />
-              </label>
-              <label>
-                Horsepower
-                <input
-                  name="horsepower"
-                  type="number"
-                  min="0"
-                  defaultValue={0}
-                  required
-                />
-              </label>
-              <label>
-                Farm or owner name
-                <input
-                  name="owner"
-                  required
-                  placeholder="Your farm’s name"
-                  maxLength={60}
-                  pattern=".*\S.*"
-                />
-              </label>
-              <label>
-                City
-                <input
-                  name="city"
-                  required
-                  placeholder="Des Moines"
-                  maxLength={60}
-                  pattern=".*\S.*"
-                />
-              </label>
-              <div className="state-zip">
-                <label>
-                  State
-                  <input
-                    name="state"
-                    required
-                    placeholder="IA"
-                    minLength={2}
-                    maxLength={2}
-                    pattern="[A-Za-z]{2}"
-                    title="Two-letter state abbreviation"
-                  />
-                </label>
-                <label>
-                  ZIP code
-                  <input
-                    name="zip"
-                    required
-                    placeholder="50309"
-                    inputMode="numeric"
-                    pattern="[0-9]{5}"
-                    maxLength={5}
-                  />
-                </label>
-              </div>
-              {listingKind !== "buy" && (
-                <label>
-                  Rental price / day ($)
-                  <input
-                    name="rent"
-                    type="number"
-                    min="1"
-                    placeholder="245"
-                    required
-                  />
-                </label>
-              )}
-              {listingKind !== "rent" && (
-                <label>
-                  Sale price ($)
-                  <input
-                    name="price"
-                    type="number"
-                    min="1"
-                    placeholder="148500"
-                    required
-                  />
-                </label>
-              )}
-              <label className="span-two">
-                A little about your equipment
-                <textarea
-                  name="description"
-                  required
-                  placeholder="Describe your equipment, what it’s great for, and any pickup details…"
-                  rows={3}
-                  maxLength={2000}
-                />
-              </label>
-            </div>
-            <div className="listing-form-footer">
-              <p>
-                <ShieldCheck size={16} />
-                Illustration added by category. This listing stays on your
-                browser.
-              </p>
-              <button className="button primary" type="submit">
-                Create demo listing
-                <ArrowRight size={17} />
-              </button>
-            </div>
-          </form>
+          <ListingForm
+            key={editing?.id || "new"}
+            equipment={editing}
+            onSave={saveListing}
+            notify={setToast}
+          />
         </Modal>
       )}
     </>

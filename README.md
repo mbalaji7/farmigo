@@ -37,3 +37,5 @@ When hosting the production build, configure the host to serve `index.html` for 
 ## Prioritized frontend roadmap
 
 1. **Equipment pages — implemented:** shareable URLs, galleries with keyboard controls and image fallbacks, specifications, pickup information, save/share actions, and rent/buy modes.
+
+2. **Listing creation and editing — implemented:** drag-and-drop photo uploads (up to six JPG/PNG/WebP photos, 10 MB each), resized browser-local IndexedDB image storage, cover selection, explicit draft saving/restoration, category-specific specs, and editing through your account.

@@ -26,6 +26,9 @@ export type Equipment = {
   description: string;
   tag?: string;
   photos?: string[];
+  workingWidth?: string;
+  capacity?: string;
+  brand?: string;
   attachments?: string;
   pickupNotes?: string;
 };

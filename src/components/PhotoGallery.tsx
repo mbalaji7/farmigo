@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Expand, Tractor } from "lucide-react";
 import Modal from "./Modal";
+import { resolvePhoto, isStoredPhoto } from "../photoStorage";
 export function Photo({
   src,
   alt,
@@ -13,6 +14,36 @@ export function Photo({
   loading?: "lazy" | "eager";
 }) {
   const [failed, setFailed] = useState(false);
+  const [url, setUrl] = useState(isStoredPhoto(src) ? "" : src);
+  useEffect(() => {
+    let active = true;
+    let objectUrl = "";
+    setFailed(false);
+    if (!isStoredPhoto(src)) {
+      setUrl(src);
+      return;
+    }
+    setUrl("");
+    resolvePhoto(src)
+      .then((value) => {
+        objectUrl = value;
+        if (active) setUrl(value);
+        else URL.revokeObjectURL(value);
+      })
+      .catch(() => {
+        if (active) setFailed(true);
+      });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [src]);
+  if (!url && !failed)
+    return (
+      <div className={`image-placeholder ${className}`} role="status">
+        Loading photo…
+      </div>
+    );
   return failed ? (
     <div
       className={`image-placeholder ${className}`}
@@ -26,7 +57,7 @@ export function Photo({
     <img
       {...props}
       className={className}
-      src={src}
+      src={url}
       alt={alt}
       onError={() => setFailed(true)}
     />
